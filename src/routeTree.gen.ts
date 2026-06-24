@@ -10,46 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as AppHomeRouteImport } from './routes/_app/home'
-import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppMeRouteImport } from './routes/_app/me'
+import { Route as AppFavoritesRouteImport } from './routes/_app/favorites'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppHomeRoute = AppHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSplatRoute = AppSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
+const AppMeRoute = AppMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFavoritesRoute = AppFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppRouteWithChildren
-  '/$': typeof AppSplatRoute
-  '/home': typeof AppHomeRoute
+  '/': typeof AppIndexRoute
+  '/favorites': typeof AppFavoritesRoute
+  '/me': typeof AppMeRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof AppRouteWithChildren
-  '/$': typeof AppSplatRoute
-  '/home': typeof AppHomeRoute
+  '/favorites': typeof AppFavoritesRoute
+  '/me': typeof AppMeRoute
+  '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
-  '/_app/$': typeof AppSplatRoute
-  '/_app/home': typeof AppHomeRoute
+  '/_app/favorites': typeof AppFavoritesRoute
+  '/_app/me': typeof AppMeRoute
+  '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/home'
+  fullPaths: '/' | '/favorites' | '/me'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/home'
-  id: '__root__' | '/_app' | '/_app/$' | '/_app/home'
+  to: '/favorites' | '/me' | '/'
+  id: '__root__' | '/_app' | '/_app/favorites' | '/_app/me' | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -65,31 +72,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/home': {
-      id: '/_app/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof AppHomeRouteImport
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/$': {
-      id: '/_app/$'
-      path: '/$'
-      fullPath: '/$'
-      preLoaderRoute: typeof AppSplatRouteImport
+    '/_app/me': {
+      id: '/_app/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof AppMeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/favorites': {
+      id: '/_app/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof AppFavoritesRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppSplatRoute: typeof AppSplatRoute
-  AppHomeRoute: typeof AppHomeRoute
+  AppFavoritesRoute: typeof AppFavoritesRoute
+  AppMeRoute: typeof AppMeRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppSplatRoute: AppSplatRoute,
-  AppHomeRoute: AppHomeRoute,
+  AppFavoritesRoute: AppFavoritesRoute,
+  AppMeRoute: AppMeRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

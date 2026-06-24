@@ -12,9 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "jm-boom",
-        "width": 800,
-        "height": 600
+        "label": "jmboom",
+        "title": "JM Boom",
+        "width": 1068,
+        "height": 680,
+        "minWidth": 800,
+        "minHeight": 600,
+        "transparent": true,
+        "visible": true,
+        "center": true
       }
     ],
     "security": {
