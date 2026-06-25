@@ -66,13 +66,18 @@ function HomePage() {
             }
           />
         ) : search.data != null && search.data.items.length === 0 ? (
-          <SearchState label="No results" description={`No albums found for "${search.data.query}".`} />
+          <SearchState
+            label="No results"
+            description={`No albums found for "${search.data.query}".`}
+          />
         ) : search.data != null ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
               <span>{search.data.total} results</span>
               <span>
-                {search.data.redirectAid ? `Direct match JM${search.data.redirectAid}` : `Page ${search.data.page}`}
+                {search.data.redirectAid
+                  ? `Direct match JM${search.data.redirectAid}`
+                  : `Page ${search.data.page}`}
               </span>
             </div>
             <div className="grid gap-3">
@@ -87,13 +92,17 @@ function HomePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">JM{item.id}</div>
+                          <div className="text-xs font-medium text-muted-foreground">
+                            JM{item.id}
+                          </div>
                           <h2 className="line-clamp-2 text-base font-medium">{item.title}</h2>
                           {item.isRedirect ? (
                             <p className="text-sm text-muted-foreground">Direct album match</p>
                           ) : null}
                           {item.author ? (
-                            <p className="line-clamp-1 text-sm text-muted-foreground">{item.author}</p>
+                            <p className="line-clamp-1 text-sm text-muted-foreground">
+                              {item.author}
+                            </p>
                           ) : null}
                         </div>
                       </div>
