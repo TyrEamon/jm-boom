@@ -27,11 +27,11 @@ export function FloatingNav({ items, activeId, className }: FloatingNavProps) {
   return (
     <div
       className={cn(
-        'fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full border border-border/70 bg-background/90 p-1.5 backdrop-blur',
+        'fixed left-1/2 z-50 -translate-x-1/2 rounded-full border border-border/70 bg-background/90 p-1 backdrop-blur',
         className
       )}
     >
-      <div className="flex items-center gap-1.5 sm:flex-col">
+      <div className="flex items-center gap-1 sm:flex-col">
         {items.map(item => {
           const isActive = item.id === currentId
 

@@ -42,70 +42,69 @@ function WeeklyPage() {
     setTypes(weekly.data.types)
   }, [weekly.data])
 
-  const selectedCategoryId = categoryId ?? weekly.data?.selectedCategoryId ?? categories[0]?.id ?? ''
+  const selectedCategoryId =
+    categoryId ?? weekly.data?.selectedCategoryId ?? categories[0]?.id ?? ''
   const selectedTypeId = typeId ?? weekly.data?.selectedTypeId ?? types[0]?.id ?? ''
   const shouldShowItemsSkeleton = weekly.isFetching
 
   return (
-    <main className="dark min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-5 py-8 pb-28 sm:pl-24 sm:pr-8">
-        <FeedHeader
-          title="每周推荐"
-          description="为你精选的本周热门及优质漫画作品。"
-          isFetching={weekly.isFetching}
-          onRefresh={() => weekly.refetch()}
-        />
+    <div className="flex flex-col gap-4 pt-24 pr-8 pb-4 pl-22">
+      <FeedHeader
+        title="每周推荐"
+        description="为你精选的本周热门作品"
+        isFetching={weekly.isFetching}
+        onRefresh={() => weekly.refetch()}
+      />
 
-        <div className="flex flex-col gap-3 border-b border-border/40 pb-5 lg:flex-row lg:items-center lg:justify-between">
-          {types.length > 0 ? (
-            <Tabs value={selectedTypeId} onValueChange={value => setTypeId(value)}>
-              <TabsList className="w-full rounded-md border border-border/60 bg-card p-1 lg:w-auto">
-                {types.map(type => (
-                  <TabsTrigger key={type.id} value={type.id} className="min-w-20 rounded-sm">
-                    {type.title}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          ) : (
-            <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
-          )}
+      <div className="mb-4 flex justify-between">
+        {types.length > 0 ? (
+          <Tabs value={selectedTypeId} onValueChange={value => setTypeId(value)}>
+            <TabsList>
+              {types.map(type => (
+                <TabsTrigger key={type.id} value={type.id} className="min-w-16">
+                  {type.title}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : (
+          <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
+        )}
 
-          {categories.length > 0 ? (
-            <Select value={selectedCategoryId} onValueChange={value => setCategoryId(value)}>
-              <SelectTrigger className="w-full rounded-md border-border/60 bg-card lg:w-[320px]">
-                <CalendarDaysIcon className="size-4 text-primary" />
-                <SelectValue placeholder="选择期数" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="h-9 w-full animate-pulse rounded-md bg-muted lg:w-[320px]" />
-          )}
-        </div>
-
-        <section>
-          {weekly.isError ? (
-            <StatePanel
-              title="每周推荐加载失败"
-              description={weekly.error.message}
-              onRetry={() => weekly.refetch()}
-            />
-          ) : shouldShowItemsSkeleton ? (
-            <ComicGridSkeleton />
-          ) : weekly.data == null || weekly.data.items.length === 0 ? (
-            <StatePanel title="暂无每周推荐" description="当前筛选条件下没有内容。" />
-          ) : (
-            <ComicGrid items={weekly.data.items} ranked />
-          )}
-        </section>
+        {categories.length > 0 ? (
+          <Select value={selectedCategoryId} onValueChange={value => setCategoryId(value)}>
+            <SelectTrigger>
+              <CalendarDaysIcon className="size-4 text-muted-foreground" />
+              <SelectValue placeholder="选择期数" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="h-9 w-full animate-pulse rounded-md bg-muted lg:w-[320px]" />
+        )}
       </div>
-    </main>
+
+      <section>
+        {weekly.isError ? (
+          <StatePanel
+            title="每周推荐加载失败"
+            description={weekly.error.message}
+            onRetry={() => weekly.refetch()}
+          />
+        ) : shouldShowItemsSkeleton ? (
+          <ComicGridSkeleton />
+        ) : weekly.data == null || weekly.data.items.length === 0 ? (
+          <StatePanel title="暂无每周推荐" description="当前筛选条件下没有内容。" />
+        ) : (
+          <ComicGrid items={weekly.data.items} ranked />
+        )}
+      </section>
+    </div>
   )
 }

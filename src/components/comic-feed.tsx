@@ -15,25 +15,22 @@ export function FeedHeader({
   onRefresh?: () => void
 }) {
   return (
-    <div className="space-y-4 border-b border-border/40 pb-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 space-y-3">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
-        {onRefresh ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            disabled={isFetching}
-            onClick={onRefresh}
-            aria-label="刷新"
-          >
-            <RefreshCwIcon className={isFetching ? 'animate-spin' : undefined} />
-          </Button>
-        ) : null}
+    <div className="mb-4 flex items-start justify-between">
+      <div className="space-y-2">
+        <h1 className="text-4xl font-bold">{title}</h1>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
+      {onRefresh ? (
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={isFetching}
+          onClick={onRefresh}
+          className="cursor-pointer"
+        >
+          <RefreshCwIcon className={isFetching ? 'animate-spin' : undefined} />
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -55,7 +52,7 @@ function ComicCard({ item, rank }: { item: FeedComic; rank?: number }) {
 
       <div className="space-y-1.5 p-3">
         <div className="text-xs font-medium text-muted-foreground">JM{item.id}</div>
-        <h2 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5">{item.title}</h2>
+        <h2 className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold">{item.title}</h2>
         <p className="line-clamp-1 text-xs text-muted-foreground">
           {item.author ? `作者: ${item.author}` : '暂无作者'}
         </p>
@@ -66,13 +63,13 @@ function ComicCard({ item, rank }: { item: FeedComic; rank?: number }) {
 
 function ComicCoverPlaceholder({ title, rank }: { title: string; rank?: number }) {
   return (
-    <div className="relative aspect-[3/4] bg-muted">
+    <div className="relative aspect-3/4 bg-muted">
       <div className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-xs text-muted-foreground">
         <ImageIcon className="size-6" />
         <span className="line-clamp-2">{title}</span>
       </div>
       {rank != null ? (
-        <span className="absolute left-3 top-3 flex size-6 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white shadow">
+        <span className="absolute top-3 left-3 flex size-6 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white shadow">
           {rank}
         </span>
       ) : null}
@@ -84,11 +81,8 @@ export function ComicGridSkeleton({ count = 10 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {Array.from({ length: count }).map((_, index) => (
-        <article
-          key={index}
-          className="overflow-hidden rounded-md border border-border/60 bg-card"
-        >
-          <div className="aspect-[3/4] animate-pulse bg-muted" />
+        <article key={index} className="overflow-hidden rounded-md border border-border/60 bg-card">
+          <div className="aspect-3/4 animate-pulse bg-muted" />
           <div className="space-y-2 p-3">
             <div className="h-3 w-16 animate-pulse rounded bg-muted" />
             <div className="h-4 animate-pulse rounded bg-muted" />
