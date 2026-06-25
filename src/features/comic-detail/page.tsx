@@ -1,0 +1,122 @@
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
+import { ArrowLeftIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import {
+  getComicComments,
+  getComicDetail,
+  type ComicDetail
+} from '@/lib/api/comic'
+import { ChaptersSection } from './chapters'
+import { CommentsDrawer } from './comments'
+import {
+  COMMENTS_GC_TIME,
+  COMMENTS_STALE_TIME,
+  DETAIL_GC_TIME,
+  DETAIL_STALE_TIME
+} from './constants'
+import { ComicHero } from './hero'
+import { RelatedPanel } from './related'
+import { BackTop, ComicDetailSkeleton, StatePanel } from './shared'
+
+export function ComicDetailPage({ comicId }: { comicId: string }) {
+  const router = useRouter()
+  const detail = useQuery({
+    queryKey: ['jm-comic-detail', comicId],
+    queryFn: () => getComicDetail(comicId),
+    staleTime: DETAIL_STALE_TIME,
+    gcTime: DETAIL_GC_TIME,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
+  })
+
+  return (
+    <main className="min-h-screen bg-background p-[48px_32px_32px_96px] text-foreground">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <Button variant="ghost" size="sm" onClick={() => router.history.back()}>
+          <ArrowLeftIcon className="size-4" />
+          返回
+        </Button>
+
+        {detail.isLoading ? (
+          <ComicDetailSkeleton />
+        ) : detail.isError ? (
+          <StatePanel
+            title="详情加载失败"
+            description={detail.error.message}
+            onRetry={() => detail.refetch()}
+          />
+        ) : detail.data == null ? (
+          <StatePanel title="暂无详情" description="当前作品没有返回可展示的详情。" />
+        ) : (
+          <ComicDetailView comic={detail.data.comic} />
+        )}
+      </div>
+      <BackTop />
+    </main>
+  )
+}
+
+function ComicDetailView({ comic }: { comic: ComicDetail }) {
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false)
+  const albumId = comic.seriesId || comic.id
+  const commentsQuery = useInfiniteQuery({
+    queryKey: ['jm-comic-comments', comic.id],
+    queryFn: ({ pageParam }) => getComicComments({ comicId: comic.id, page: pageParam }),
+    initialPageParam: 1,
+    enabled: isCommentsOpen,
+    staleTime: COMMENTS_STALE_TIME,
+    gcTime: COMMENTS_GC_TIME,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.reduce((sum, page) => sum + page.comments.length, 0)
+
+      if (lastPage.comments.length === 0 || loadedCount >= lastPage.total) {
+        return undefined
+      }
+
+      return lastPage.page + 1
+    }
+  })
+  const comments = useMemo(
+    () => commentsQuery.data?.pages.flatMap(page => page.comments) ?? [],
+    [commentsQuery.data]
+  )
+  const commentTotal = commentsQuery.data?.pages[0]?.total ?? comic.commentTotal
+
+  return (
+    <div className="space-y-10">
+      <ComicHero comic={comic} onCommentsClick={() => setIsCommentsOpen(true)} />
+
+      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-8">
+        <div className="min-w-0">
+          <ChaptersSection albumId={albumId} comicTitle={comic.title} chapters={comic.series} />
+        </div>
+
+        <aside className="sticky top-8 h-fit">
+          <RelatedPanel items={comic.relatedList} />
+        </aside>
+      </div>
+
+      <CommentsDrawer
+        open={isCommentsOpen}
+        onOpenChange={setIsCommentsOpen}
+        state={{
+          isLoading: commentsQuery.isLoading,
+          isFetchingNextPage: commentsQuery.isFetchingNextPage,
+          isError: commentsQuery.isError,
+          errorMessage: commentsQuery.error?.message,
+          total: commentTotal,
+          comments,
+          hasNextPage: commentsQuery.hasNextPage,
+          onRetry: () => commentsQuery.refetch(),
+          onLoadMore: () => commentsQuery.fetchNextPage({ cancelRefetch: false })
+        }}
+      />
+    </div>
+  )
+}
+

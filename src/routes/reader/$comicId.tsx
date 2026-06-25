@@ -27,6 +27,8 @@ export const Route = createFileRoute('/reader/$comicId')({
 const READER_STALE_TIME = 60 * 60 * 1000
 const READER_GC_TIME = 2 * 60 * 60 * 1000
 const PREFETCH_RADIUS = 3
+const PAGE_LOAD_DEBOUNCE_MS = 120
+const PREFETCH_SETTLE_MS = 300
 
 type ReaderNextChapter = {
   id: string
@@ -38,6 +40,7 @@ function ReaderPage() {
   const search = Route.useSearch()
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [loadIndex, setLoadIndex] = useState(0)
   const {
     isVisible: isToolbarVisible,
     show: showToolbar,
@@ -55,11 +58,11 @@ function ReaderPage() {
   })
   const pageCount = manifest.data?.pageCount ?? 0
   const page = useQuery({
-    queryKey: ['jm-reader-page', comicId, currentIndex, manifest.data?.shunt],
+    queryKey: ['jm-reader-page', comicId, loadIndex, manifest.data?.shunt],
     queryFn: () =>
       getComicReadPage({
         readId: comicId,
-        index: currentIndex,
+        index: loadIndex,
         shunt: manifest.data?.shunt
       }),
     enabled: manifest.isSuccess && pageCount > 0,
@@ -68,7 +71,6 @@ function ReaderPage() {
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })
-  const pageSrc = useMemo(() => (page.data ? readerFileSrc(page.data.path) : ''), [page.data])
   const isLastPage = pageCount > 0 && currentIndex >= pageCount - 1
   const title = search.title.trim()
   const searchChapter = search.chapter.trim()
@@ -103,19 +105,34 @@ function ReaderPage() {
       }),
     [albumDetail.data, comicId, searchChapter]
   )
-  const goToPage = useCallback(
-    (index: number) => {
-      if (pageCount === 0) {
-        return
-      }
-
-      setCurrentIndex(Math.min(Math.max(index, 0), pageCount - 1))
-    },
+  const clampPageIndex = useCallback(
+    (index: number) => Math.min(Math.max(index, 0), Math.max(pageCount - 1, 0)),
     [pageCount]
+  )
+  const goToPreviousPage = useCallback(() => {
+    if (pageCount === 0) {
+      return
+    }
+
+    setCurrentIndex(index => clampPageIndex(index - 1))
+  }, [clampPageIndex, pageCount])
+  const goToNextPage = useCallback(() => {
+    if (pageCount === 0) {
+      return
+    }
+
+    setCurrentIndex(index => clampPageIndex(index + 1))
+  }, [clampPageIndex, pageCount])
+  const isSettlingPage = currentIndex !== loadIndex
+  const isPageReady = !isSettlingPage && page.data?.index === currentIndex
+  const pageSrc = useMemo(
+    () => (isPageReady && page.data ? readerFileSrc(page.data.path) : ''),
+    [isPageReady, page.data]
   )
 
   useEffect(() => {
     setCurrentIndex(0)
+    setLoadIndex(0)
   }, [comicId])
 
   useEffect(() => {
@@ -127,32 +144,55 @@ function ReaderPage() {
   }, [currentIndex, pageCount])
 
   useEffect(() => {
-    if (!manifest.data || pageCount === 0) {
+    if (pageCount === 0) {
       return
     }
 
-    void prefetchComicReadPages({
-      readId: comicId,
-      centerIndex: currentIndex,
-      radius: PREFETCH_RADIUS,
-      shunt: manifest.data.shunt
-    }).catch(error => {
-      console.debug('Reader prefetch failed', error)
-    })
-  }, [comicId, currentIndex, manifest.data, pageCount])
+    const clampedIndex = clampPageIndex(currentIndex)
+
+    if (clampedIndex !== currentIndex) {
+      setCurrentIndex(clampedIndex)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setLoadIndex(clampedIndex)
+    }, PAGE_LOAD_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [clampPageIndex, currentIndex, pageCount])
+
+  useEffect(() => {
+    if (!manifest.data || pageCount === 0 || !isPageReady) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void prefetchComicReadPages({
+        readId: comicId,
+        centerIndex: currentIndex,
+        radius: PREFETCH_RADIUS,
+        shunt: manifest.data.shunt
+      }).catch(error => {
+        console.debug('Reader prefetch failed', error)
+      })
+    }, PREFETCH_SETTLE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [comicId, currentIndex, isPageReady, manifest.data, pageCount])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
         hideToolbar()
-        goToPage(currentIndex - 1)
+        goToPreviousPage()
       }
 
       if (event.key === 'ArrowRight') {
         event.preventDefault()
         hideToolbar()
-        goToPage(currentIndex + 1)
+        goToNextPage()
       }
 
       if (event.key === 'Escape') {
@@ -165,7 +205,7 @@ function ReaderPage() {
     window.addEventListener('keydown', handleKeyDown)
 
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, goToPage, hideToolbar, router])
+  }, [goToNextPage, goToPreviousPage, hideToolbar, router])
 
   return (
     <main
@@ -193,13 +233,13 @@ function ReaderPage() {
         type="button"
         aria-label="上一页"
         className="absolute top-20 bottom-20 left-0 z-10 w-1/5 cursor-w-resize"
-        onClick={() => goToPage(currentIndex - 1)}
+        onClick={goToPreviousPage}
       />
       <button
         type="button"
         aria-label="下一页"
         className="absolute top-20 right-0 bottom-20 z-10 w-1/5 cursor-e-resize"
-        onClick={() => goToPage(currentIndex + 1)}
+        onClick={goToNextPage}
       />
 
       <section className="flex min-w-0 flex-1 items-center justify-center">
@@ -207,11 +247,11 @@ function ReaderPage() {
           <ReaderLoading label="正在加载阅读信息" />
         ) : manifest.isError ? (
           <ReaderError title="阅读信息加载失败" description={manifest.error.message} />
-        ) : page.isLoading || page.isFetching ? (
+        ) : isSettlingPage || page.isLoading || page.isFetching ? (
           <ReaderLoading label="正在准备图片" />
         ) : page.isError ? (
           <ReaderError title="图片加载失败" description={page.error.message} />
-        ) : pageSrc.length > 0 ? (
+        ) : isPageReady && pageSrc.length > 0 ? (
           <ReaderImage src={pageSrc} />
         ) : (
           <ReaderError title="暂无图片" description="当前页没有可展示的图片" />

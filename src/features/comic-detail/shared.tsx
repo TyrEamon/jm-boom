@@ -1,0 +1,190 @@
+import { ImageIcon, ChevronUpIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
+import { StatePanel } from '@/components/comic-feed'
+import { Button } from '@/components/ui/button'
+import { SHOW_COVER_MASK, COMMENT_SKELETON_COUNT } from './constants'
+import { cn } from '@/lib/utils'
+
+export function ComicCover({
+  title,
+  image,
+  className
+}: {
+  id: string
+  title: string
+  image: string
+  className?: string
+}) {
+  const [hasImageError, setHasImageError] = useState(false)
+  const shouldShowImage = image.length > 0 && !hasImageError
+
+  useEffect(() => {
+    setHasImageError(false)
+  }, [image])
+
+  return (
+    <div
+      className={cn(
+        'relative aspect-[3/4] overflow-hidden rounded-md bg-muted ring-1 ring-border',
+        className
+      )}
+    >
+      {shouldShowImage ? (
+        <img
+          src={image}
+          alt={title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+          onError={() => setHasImageError(true)}
+        />
+      ) : (
+        <CoverPlaceholder />
+      )}
+      {SHOW_COVER_MASK ? <CoverMask /> : null}
+    </div>
+  )
+}
+
+export function BackTop() {
+  const isVisible = useBackTopVisibility(560)
+
+  if (!isVisible) {
+    return null
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      aria-label="回到顶部"
+      className="fixed right-8 bottom-8 z-50 bg-background/80 backdrop-blur"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    >
+      <ChevronUpIcon className="size-4" />
+    </Button>
+  )
+}
+
+export function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex items-end justify-between gap-4">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold tracking-normal">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  )
+}
+
+export function ComicDetailSkeleton() {
+  return (
+    <div className="space-y-10">
+      <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-8">
+        <div className="aspect-[3/4] animate-pulse rounded-md bg-muted" />
+        <div className="space-y-5 py-1">
+          <div className="h-5 w-56 animate-pulse rounded bg-muted" />
+          <div className="space-y-3">
+            <div className="h-10 w-2/3 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-64 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="h-px bg-border" />
+          <div className="h-24 max-w-3xl animate-pulse rounded-md bg-muted" />
+          <div className="h-px bg-border" />
+          <div className="space-y-2">
+            <div className="h-4 max-w-3xl animate-pulse rounded bg-muted" />
+            <div className="h-4 max-w-2xl animate-pulse rounded bg-muted" />
+            <div className="h-4 max-w-xl animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      </section>
+      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-8">
+        <div className="space-y-8">
+          <ChapterSkeletonList />
+        </div>
+        <div className="h-80 animate-pulse rounded-xl bg-muted" />
+      </div>
+    </div>
+  )
+}
+
+export function CommentSkeletonList() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: COMMENT_SKELETON_COUNT }).map((_, index) => (
+        <div key={index} className="space-y-3 px-px py-1">
+          <div className="space-y-2">
+            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export { StatePanel }
+
+function CoverPlaceholder() {
+  return (
+    <div className="flex h-full items-center justify-center bg-muted text-muted-foreground">
+      <ImageIcon className="size-6" />
+    </div>
+  )
+}
+
+function CoverMask() {
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted/90 text-muted-foreground backdrop-blur-sm">
+      <ImageIcon className="size-6" />
+    </div>
+  )
+}
+
+function ChapterSkeletonList() {
+  return (
+    <section className="space-y-4">
+      <div className="space-y-2">
+        <div className="h-6 w-24 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="h-18 animate-pulse rounded-xl bg-muted" />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function useBackTopVisibility(threshold: number) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    let frame = 0
+
+    function updateVisibility() {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        setIsVisible(window.scrollY > threshold)
+      })
+    }
+
+    updateVisibility()
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', updateVisibility)
+    }
+  }, [threshold])
+
+  return isVisible
+}
+

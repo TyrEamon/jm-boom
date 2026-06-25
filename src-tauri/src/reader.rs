@@ -12,15 +12,18 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::SystemTime;
 use tauri::{AppHandle, Manager};
+use tokio::sync::Semaphore;
 
 const DEFAULT_SHUNT: &str = "1";
 const DEFAULT_PREFETCH_RADIUS: u32 = 3;
 const MAX_PREFETCH_RADIUS: u32 = 6;
 const READER_CACHE_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
 const READER_CACHE_TRIM_BYTES: u64 = 420 * 1024 * 1024;
+const PAGE_MATERIALIZE_CONCURRENCY: usize = 2;
 const SEED_MAP: [u32; 10] = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 
 static MANIFEST_CACHE: OnceLock<Mutex<HashMap<String, ReaderManifest>>> = OnceLock::new();
+static PAGE_MATERIALIZE_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
 static RESULT_RE: OnceLock<Regex> = OnceLock::new();
 static CONFIG_RE: OnceLock<Regex> = OnceLock::new();
 static AID_RE: OnceLock<Regex> = OnceLock::new();
@@ -345,6 +348,10 @@ async fn materialize_reader_page(
         }
     }
 
+    let _permit = page_materialize_semaphore()
+        .acquire()
+        .await
+        .map_err(|error| ApiError::new(ApiErrorKind::Cache, error.to_string()))?;
     let client = build_http_client()?;
     let bytes = download_image_bytes(&client, &page.source_url, &manifest.endpoint).await?;
     let page_for_decode = page.clone();
@@ -513,6 +520,10 @@ fn page_result(
 
 fn image_dimensions_from_path(path: &Path) -> ApiResult<(u32, u32)> {
     image::image_dimensions(path).map_err(map_image_error)
+}
+
+fn page_materialize_semaphore() -> &'static Semaphore {
+    PAGE_MATERIALIZE_SEMAPHORE.get_or_init(|| Semaphore::new(PAGE_MATERIALIZE_CONCURRENCY))
 }
 
 fn reader_cache_root(app: &AppHandle) -> ApiResult<PathBuf> {
