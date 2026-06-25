@@ -47,23 +47,20 @@ export function ComicGrid({ items, ranked = false }: { items: FeedComic[]; ranke
 
 function ComicCard({ item, rank }: { item: FeedComic; rank?: number }) {
   return (
-    <article className="overflow-hidden rounded-md border border-border/70 bg-card text-card-foreground shadow-sm transition-colors hover:border-foreground/30">
+    <div className="overflow-hidden rounded-md border border-border/70 bg-card text-card-foreground transition-colors hover:border-foreground/30">
       <ComicCoverPlaceholder title={item.title} rank={rank} />
-
-      <div className="space-y-1.5 p-3">
-        <div className="text-xs font-medium text-muted-foreground">JM{item.id}</div>
-        <h2 className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold">{item.title}</h2>
-        <p className="line-clamp-1 text-xs text-muted-foreground">
-          {item.author ? `作者: ${item.author}` : '暂无作者'}
-        </p>
+      <div className="p-3">
+        <div className="text-xs font-medium text-muted-foreground">JM {item.id}</div>
+        <h2 className="text-sm leading-5 font-semibold">{item.title}</h2>
+        <p className="text-xs text-muted-foreground">{item.author ? `${item.author}` : 'N/A'}</p>
       </div>
-    </article>
+    </div>
   )
 }
 
 function ComicCoverPlaceholder({ title, rank }: { title: string; rank?: number }) {
   return (
-    <div className="relative aspect-3/4 bg-muted">
+    <div className="relative aspect-square bg-muted">
       <div className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-xs text-muted-foreground">
         <ImageIcon className="size-6" />
         <span className="line-clamp-2">{title}</span>

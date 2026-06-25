@@ -7,6 +7,7 @@ import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/componen
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue
@@ -48,7 +49,7 @@ function WeeklyPage() {
   const shouldShowItemsSkeleton = weekly.isFetching
 
   return (
-    <div className="flex flex-col gap-4 pt-24 pr-8 pb-4 pl-22">
+    <div className="flex flex-col gap-4 p-[96px_32px_16px_96px]">
       <FeedHeader
         title="每周推荐"
         description="为你精选的本周热门作品"
@@ -78,11 +79,13 @@ function WeeklyPage() {
               <SelectValue placeholder="选择期数" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {categories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         ) : (
