@@ -8,7 +8,7 @@ export type FloatingNavItem = {
   id: string
   icon: LucideIcon
   label: string
-  to: '/' | '/favorites' | '/me'
+  to: '/' | '/weekly' | '/favorites' | '/me'
 }
 
 type FloatingNavProps = {

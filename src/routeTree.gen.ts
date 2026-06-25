@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppWeeklyRouteImport } from './routes/_app/weekly'
 import { Route as AppMeRouteImport } from './routes/_app/me'
 import { Route as AppFavoritesRouteImport } from './routes/_app/favorites'
 
@@ -21,6 +22,11 @@ const AppRoute = AppRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWeeklyRoute = AppWeeklyRouteImport.update({
+  id: '/weekly',
+  path: '/weekly',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMeRoute = AppMeRouteImport.update({
@@ -38,10 +44,12 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/favorites': typeof AppFavoritesRoute
   '/me': typeof AppMeRoute
+  '/weekly': typeof AppWeeklyRoute
 }
 export interface FileRoutesByTo {
   '/favorites': typeof AppFavoritesRoute
   '/me': typeof AppMeRoute
+  '/weekly': typeof AppWeeklyRoute
   '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -49,14 +57,21 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/favorites': typeof AppFavoritesRoute
   '/_app/me': typeof AppMeRoute
+  '/_app/weekly': typeof AppWeeklyRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/favorites' | '/me'
+  fullPaths: '/' | '/favorites' | '/me' | '/weekly'
   fileRoutesByTo: FileRoutesByTo
-  to: '/favorites' | '/me' | '/'
-  id: '__root__' | '/_app' | '/_app/favorites' | '/_app/me' | '/_app/'
+  to: '/favorites' | '/me' | '/weekly' | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/favorites'
+    | '/_app/me'
+    | '/_app/weekly'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -79,6 +94,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/weekly': {
+      id: '/_app/weekly'
+      path: '/weekly'
+      fullPath: '/weekly'
+      preLoaderRoute: typeof AppWeeklyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/me': {
       id: '/_app/me'
       path: '/me'
@@ -99,12 +121,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppFavoritesRoute: typeof AppFavoritesRoute
   AppMeRoute: typeof AppMeRoute
+  AppWeeklyRoute: typeof AppWeeklyRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppFavoritesRoute: AppFavoritesRoute,
   AppMeRoute: AppMeRoute,
+  AppWeeklyRoute: AppWeeklyRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

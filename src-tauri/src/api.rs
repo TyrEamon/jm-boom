@@ -92,6 +92,56 @@ struct SearchCategory {
 }
 
 #[derive(Debug, Deserialize)]
+struct ComicListItemPayload {
+    id: String,
+    author: String,
+    description: Option<String>,
+    name: String,
+    image: String,
+    category: Option<SearchCategory>,
+    category_sub: Option<SearchCategory>,
+    update_at: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HomeFeedSectionPayload {
+    id: String,
+    title: String,
+    slug: String,
+    #[serde(rename = "type")]
+    section_type: String,
+    filter_val: String,
+    content: Vec<ComicListItemPayload>,
+}
+
+#[derive(Debug, Deserialize)]
+struct WeekPayload {
+    categories: Vec<WeekCategoryPayload>,
+    #[serde(rename = "type")]
+    types: Vec<WeekTypePayload>,
+}
+
+#[derive(Debug, Deserialize)]
+struct WeekCategoryPayload {
+    id: String,
+    time: String,
+    title: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct WeekTypePayload {
+    id: String,
+    title: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct WeekComicsPayload {
+    #[serde(deserialize_with = "deserialize_u32_from_string_or_number")]
+    total: u32,
+    list: Vec<ComicListItemPayload>,
+}
+
+#[derive(Debug, Deserialize)]
 struct RemoteSettingPayload {
     img_host: String,
 }
@@ -126,6 +176,64 @@ pub struct SearchAlbum {
     pub updated_at: Option<i64>,
     #[serde(rename = "isRedirect")]
     pub is_redirect: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct HomeFeedResult {
+    pub endpoint: String,
+    pub sections: Vec<HomeFeedSection>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct HomeFeedSection {
+    pub id: String,
+    pub title: String,
+    pub slug: String,
+    #[serde(rename = "type")]
+    pub section_type: String,
+    #[serde(rename = "filterValue")]
+    pub filter_value: String,
+    pub items: Vec<FeedComic>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WeekRecommendationsResult {
+    pub endpoint: String,
+    pub page: u32,
+    pub total: u32,
+    pub categories: Vec<WeekCategory>,
+    pub types: Vec<WeekType>,
+    #[serde(rename = "selectedCategoryId")]
+    pub selected_category_id: Option<String>,
+    #[serde(rename = "selectedTypeId")]
+    pub selected_type_id: Option<String>,
+    pub items: Vec<FeedComic>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WeekCategory {
+    pub id: String,
+    pub time: String,
+    pub title: String,
+    pub label: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WeekType {
+    pub id: String,
+    pub title: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FeedComic {
+    pub id: String,
+    pub title: String,
+    pub author: String,
+    pub description: String,
+    pub image: String,
+    pub tags: Vec<String>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<i64>,
 }
 
 struct ApiAuth {
@@ -189,6 +297,87 @@ pub async fn search_comics(
     };
 
     request_search(&client, endpoint, &query, page, &auth, img_host.as_deref()).await
+}
+
+pub async fn get_home_feed(endpoint: Option<String>) -> ApiResult<HomeFeedResult> {
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    let client = build_http_client()?;
+    let auth = ApiAuth::current();
+    let setting = request_remote_setting(&client, endpoint, &auth).await?;
+    let sections = request_home_feed(&client, endpoint, &auth, &setting.img_host).await?;
+
+    Ok(HomeFeedResult {
+        endpoint: endpoint.to_string(),
+        sections,
+    })
+}
+
+pub async fn get_week_recommendations(
+    page: Option<u32>,
+    category_id: Option<String>,
+    type_id: Option<String>,
+    endpoint: Option<String>,
+) -> ApiResult<WeekRecommendationsResult> {
+    let page = page.unwrap_or(1);
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    let client = build_http_client()?;
+    let auth = ApiAuth::current();
+    let setting = request_remote_setting(&client, endpoint, &auth).await?;
+    let week = request_week_data(&client, endpoint, &auth).await?;
+    let categories = week
+        .categories
+        .into_iter()
+        .map(|item| WeekCategory {
+            label: if item.time.is_empty() {
+                item.title.clone()
+            } else {
+                format!("{} ({})", item.title, item.time)
+            },
+            id: item.id,
+            time: item.time,
+            title: item.title,
+        })
+        .collect::<Vec<_>>();
+    let types = week
+        .types
+        .into_iter()
+        .map(|item| WeekType {
+            id: item.id,
+            title: item.title,
+        })
+        .collect::<Vec<_>>();
+    let selected_category_id = normalize_selected_value(category_id)
+        .or_else(|| categories.first().map(|item| item.id.clone()));
+    let selected_type_id =
+        normalize_selected_value(type_id).or_else(|| types.first().map(|item| item.id.clone()));
+
+    let (total, items) = match (&selected_category_id, &selected_type_id) {
+        (Some(category_id), Some(type_id)) => {
+            let payload =
+                request_week_comics(&client, endpoint, page, category_id, type_id, &auth).await?;
+
+            (
+                payload.total,
+                payload
+                    .list
+                    .into_iter()
+                    .map(|item| map_feed_comic(item, Some(&setting.img_host)))
+                    .collect(),
+            )
+        }
+        _ => (0, Vec::new()),
+    };
+
+    Ok(WeekRecommendationsResult {
+        endpoint: endpoint.to_string(),
+        page,
+        total,
+        categories,
+        types,
+        selected_category_id,
+        selected_type_id,
+        items,
+    })
 }
 
 fn build_http_client() -> ApiResult<reqwest::Client> {
@@ -291,6 +480,62 @@ async fn request_search(
         redirect_aid,
         items,
     })
+}
+
+async fn request_home_feed(
+    client: &reqwest::Client,
+    endpoint: &str,
+    auth: &ApiAuth,
+    img_host: &str,
+) -> ApiResult<Vec<HomeFeedSection>> {
+    let payload: Vec<HomeFeedSectionPayload> =
+        request_api_data(client, endpoint, "promote", &[], auth).await?;
+
+    Ok(payload
+        .into_iter()
+        .map(|section| HomeFeedSection {
+            id: section.id,
+            title: section.title,
+            slug: section.slug,
+            section_type: section.section_type,
+            filter_value: section.filter_val,
+            items: section
+                .content
+                .into_iter()
+                .map(|item| map_feed_comic(item, Some(img_host)))
+                .collect(),
+        })
+        .collect())
+}
+
+async fn request_week_data(
+    client: &reqwest::Client,
+    endpoint: &str,
+    auth: &ApiAuth,
+) -> ApiResult<WeekPayload> {
+    request_api_data(client, endpoint, "week", &[], auth).await
+}
+
+async fn request_week_comics(
+    client: &reqwest::Client,
+    endpoint: &str,
+    page: u32,
+    category_id: &str,
+    type_id: &str,
+    auth: &ApiAuth,
+) -> ApiResult<WeekComicsPayload> {
+    request_api_data(
+        client,
+        endpoint,
+        "week/filter",
+        &[
+            ("page", page.to_string()),
+            ("id", category_id.to_string()),
+            ("type", type_id.to_string()),
+        ],
+        auth,
+    )
+    .await
 }
 
 async fn request_api_data<T>(
@@ -396,6 +641,38 @@ where
             )
         }),
     }
+}
+
+fn map_feed_comic(item: ComicListItemPayload, img_host: Option<&str>) -> FeedComic {
+    let mut tags = Vec::new();
+
+    if let Some(title) = item.category.and_then(|category| category.title) {
+        if !title.is_empty() {
+            tags.push(title);
+        }
+    }
+
+    if let Some(title) = item.category_sub.and_then(|category| category.title) {
+        if !title.is_empty() && !tags.contains(&title) {
+            tags.push(title);
+        }
+    }
+
+    FeedComic {
+        image: cover_image_url(img_host, &item.id).unwrap_or(item.image),
+        id: item.id,
+        title: item.name,
+        author: item.author,
+        description: item.description.unwrap_or_default(),
+        tags,
+        updated_at: item.update_at,
+    }
+}
+
+fn normalize_selected_value(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
 }
 
 fn decrypt_data(data: &str, ts: u64) -> Result<String, String> {

@@ -1,12 +1,25 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ThemeProvider } from 'next-themes'
 import { ReactNode } from 'react'
+import { Toaster } from 'sonner'
 
-type ProvidersProps = {
-  children: ReactNode
-}
+import { TooltipProvider } from './ui/tooltip'
 
 const queryClient = new QueryClient()
 
-export function Providers({ children }: ProvidersProps) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+        <Toaster
+          toastOptions={{
+            classNames: {
+              toast: 'font-sans'
+            }
+          }}
+        />
+      </ThemeProvider>
+    </QueryClientProvider>
+  )
 }
