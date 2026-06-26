@@ -7,6 +7,7 @@ import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/componen
 import { Button } from '@/components/ui/button'
 import { getHomeFeed, type HomeFeedSection } from '@/lib/api/home'
 import { cn } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settings-store'
 
 export const Route = createFileRoute('/_app/')({
   component: HomePage
@@ -17,9 +18,10 @@ const HOME_FEED_GC_TIME = 60 * 60 * 1000
 const EMPTY_HOME_SECTIONS: HomeFeedSection[] = []
 
 function HomePage() {
+  const endpoint = useSettingsStore(state => state.api)
   const homeFeed = useQuery({
-    queryKey: ['jm-home-feed'],
-    queryFn: () => getHomeFeed(),
+    queryKey: ['jm-home-feed', endpoint],
+    queryFn: () => getHomeFeed(endpoint),
     staleTime: HOME_FEED_STALE_TIME,
     gcTime: HOME_FEED_GC_TIME,
     refetchOnMount: false,

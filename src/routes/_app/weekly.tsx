@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getWeekFilters, getWeekItems } from '@/lib/api/home'
+import { useSettingsStore } from '@/stores/settings-store'
 
 export const Route = createFileRoute('/_app/weekly')({
   component: WeeklyPage
@@ -25,12 +26,13 @@ const WEEK_ITEMS_STALE_TIME = 30 * 60 * 1000
 const WEEK_ITEMS_GC_TIME = 60 * 60 * 1000
 
 function WeeklyPage() {
+  const endpoint = useSettingsStore(state => state.api)
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [typeId, setTypeId] = useState<string | null>(null)
 
   const filters = useQuery({
-    queryKey: ['week-filters'],
-    queryFn: () => getWeekFilters(),
+    queryKey: ['week-filters', endpoint],
+    queryFn: () => getWeekFilters(endpoint),
     staleTime: WEEK_FILTERS_STALE_TIME,
     gcTime: WEEK_FILTERS_GC_TIME,
     refetchOnMount: false,
@@ -62,11 +64,12 @@ function WeeklyPage() {
   const canLoadItems = selectedCategoryId.length > 0 && selectedTypeId.length > 0
 
   const items = useQuery({
-    queryKey: ['jm-week-items', selectedCategoryId, selectedTypeId, 1],
+    queryKey: ['jm-week-items', endpoint, selectedCategoryId, selectedTypeId, 1],
     queryFn: () =>
       getWeekItems({
         categoryId: selectedCategoryId,
-        typeId: selectedTypeId
+        typeId: selectedTypeId,
+        endpoint
       }),
     enabled: canLoadItems,
     staleTime: WEEK_ITEMS_STALE_TIME,

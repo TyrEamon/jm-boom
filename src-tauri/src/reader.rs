@@ -17,8 +17,9 @@ use tokio::sync::Semaphore;
 const DEFAULT_SHUNT: &str = "1";
 const DEFAULT_PREFETCH_RADIUS: u32 = 3;
 const MAX_PREFETCH_RADIUS: u32 = 6;
-const READER_CACHE_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
-const READER_CACHE_TRIM_BYTES: u64 = 420 * 1024 * 1024;
+const DEFAULT_READER_CACHE_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
+const MIN_READER_CACHE_LIMIT_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_READER_CACHE_LIMIT_BYTES: u64 = 2048 * 1024 * 1024;
 const PAGE_MATERIALIZE_CONCURRENCY: usize = 2;
 const SEED_MAP: [u32; 10] = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 
@@ -92,6 +93,20 @@ pub struct ComicReadPrefetchResult {
     pub completed: u32,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ReaderCacheStatsResult {
+    #[serde(rename = "cacheDir")]
+    pub cache_dir: String,
+    #[serde(rename = "totalBytes")]
+    pub total_bytes: u64,
+    #[serde(rename = "fileCount")]
+    pub file_count: u32,
+    #[serde(rename = "cacheLimitBytes")]
+    pub cache_limit_bytes: u64,
+    #[serde(rename = "cacheTrimBytes")]
+    pub cache_trim_bytes: u64,
+}
+
 pub async fn get_comic_read_manifest(
     read_id: String,
     shunt: Option<String>,
@@ -108,10 +123,11 @@ pub async fn get_comic_read_page(
     index: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    cache_limit_bytes: Option<u64>,
 ) -> ApiResult<ComicReadPageResult> {
     let manifest = get_or_load_manifest(read_id, shunt, endpoint).await?;
 
-    materialize_reader_page(app, &manifest, index).await
+    materialize_reader_page(app, &manifest, index, normalize_cache_limit(cache_limit_bytes)).await
 }
 
 pub async fn prefetch_comic_read_pages(
@@ -121,8 +137,10 @@ pub async fn prefetch_comic_read_pages(
     radius: Option<u32>,
     shunt: Option<String>,
     endpoint: Option<String>,
+    cache_limit_bytes: Option<u64>,
 ) -> ApiResult<ComicReadPrefetchResult> {
     let manifest = get_or_load_manifest(read_id, shunt, endpoint).await?;
+    let cache_limit_bytes = normalize_cache_limit(cache_limit_bytes);
     let radius = radius
         .unwrap_or(DEFAULT_PREFETCH_RADIUS)
         .clamp(1, MAX_PREFETCH_RADIUS);
@@ -147,7 +165,10 @@ pub async fn prefetch_comic_read_pages(
 
         requested += 1;
 
-        if materialize_reader_page(app, &manifest, index).await.is_ok() {
+        if materialize_reader_page(app, &manifest, index, cache_limit_bytes)
+            .await
+            .is_ok()
+        {
             completed += 1;
         }
     }
@@ -158,6 +179,38 @@ pub async fn prefetch_comic_read_pages(
     })
 }
 
+pub fn get_reader_cache_stats(
+    app: &AppHandle,
+    cache_limit_bytes: Option<u64>,
+) -> ApiResult<ReaderCacheStatsResult> {
+    let cache_root = reader_cache_root(app)?;
+    let cache_limit_bytes = normalize_cache_limit(cache_limit_bytes);
+    reader_cache_stats(cache_root, cache_limit_bytes)
+}
+
+pub fn clear_reader_cache(
+    app: &AppHandle,
+    cache_limit_bytes: Option<u64>,
+) -> ApiResult<ReaderCacheStatsResult> {
+    let cache_root = reader_cache_root(app)?;
+    let cache_limit_bytes = normalize_cache_limit(cache_limit_bytes);
+
+    if cache_root.exists() {
+        fs::remove_dir_all(&cache_root).map_err(map_cache_error)?;
+    }
+
+    clear_manifest_cache();
+    reader_cache_stats(cache_root, cache_limit_bytes)
+}
+
+pub fn open_reader_cache_dir(app: &AppHandle) -> ApiResult<()> {
+    let cache_root = reader_cache_root(app)?;
+
+    fs::create_dir_all(&cache_root).map_err(map_cache_error)?;
+    tauri_plugin_opener::open_path(&cache_root, None::<&str>)
+        .map_err(|error| ApiError::new(ApiErrorKind::Cache, error.to_string()))
+}
+
 impl ReaderManifest {
     fn to_result(&self) -> ComicReadManifestResult {
         ComicReadManifestResult {
@@ -165,7 +218,7 @@ impl ReaderManifest {
             read_id: self.read_id.clone(),
             shunt: self.shunt.clone(),
             page_count: self.pages.len() as u32,
-            cache_limit_bytes: READER_CACHE_LIMIT_BYTES,
+            cache_limit_bytes: DEFAULT_READER_CACHE_LIMIT_BYTES,
         }
     }
 }
@@ -320,6 +373,7 @@ async fn materialize_reader_page(
     app: &AppHandle,
     manifest: &ReaderManifest,
     index: u32,
+    cache_limit_bytes: u64,
 ) -> ApiResult<ComicReadPageResult> {
     let page = manifest
         .pages
@@ -366,6 +420,7 @@ async fn materialize_reader_page(
             &manifest_for_decode,
             &page_for_decode,
             &bytes,
+            cache_limit_bytes,
         )
     })
     .await
@@ -412,6 +467,7 @@ fn write_reader_page_cache(
     manifest: &ReaderManifest,
     page: &ReaderPage,
     bytes: &[u8],
+    cache_limit_bytes: u64,
 ) -> ApiResult<(u32, u32)> {
     if let Some(parent) = cache_path.parent() {
         fs::create_dir_all(parent).map_err(map_cache_error)?;
@@ -427,13 +483,13 @@ fn write_reader_page_cache(
         DynamicImage::ImageRgba8(decoded)
             .save_with_format(cache_path, ImageFormat::WebP)
             .map_err(map_image_error)?;
-        cleanup_reader_cache(cache_root)?;
+        cleanup_reader_cache(cache_root, cache_limit_bytes)?;
 
         return Ok((decoded_width, decoded_height));
     }
 
     fs::write(cache_path, bytes).map_err(map_cache_error)?;
-    cleanup_reader_cache(cache_root)?;
+    cleanup_reader_cache(cache_root, cache_limit_bytes)?;
 
     Ok((width, height))
 }
@@ -548,20 +604,21 @@ fn reader_page_cache_path(
     Ok(read_dir.join(format!("{:04}.{extension}", page.index + 1)))
 }
 
-fn cleanup_reader_cache(cache_root: &Path) -> ApiResult<()> {
+fn cleanup_reader_cache(cache_root: &Path, cache_limit_bytes: u64) -> ApiResult<()> {
     let files = collect_cache_files(cache_root)?;
     let total_size = files.iter().map(|file| file.size).sum::<u64>();
 
-    if total_size <= READER_CACHE_LIMIT_BYTES {
+    if total_size <= cache_limit_bytes {
         return Ok(());
     }
 
+    let cache_trim_bytes = cache_trim_bytes(cache_limit_bytes);
     let mut files = files;
     files.sort_by_key(|file| file.modified);
     let mut current_size = total_size;
 
     for file in files {
-        if current_size <= READER_CACHE_TRIM_BYTES {
+        if current_size <= cache_trim_bytes {
             break;
         }
 
@@ -617,6 +674,22 @@ fn collect_cache_files_in(dir: &Path, files: &mut Vec<CacheFile>) -> ApiResult<(
     Ok(())
 }
 
+fn reader_cache_stats(
+    cache_root: PathBuf,
+    cache_limit_bytes: u64,
+) -> ApiResult<ReaderCacheStatsResult> {
+    let files = collect_cache_files(&cache_root)?;
+    let total_bytes = files.iter().map(|file| file.size).sum::<u64>();
+
+    Ok(ReaderCacheStatsResult {
+        cache_dir: cache_root.to_string_lossy().to_string(),
+        total_bytes,
+        file_count: files.len() as u32,
+        cache_limit_bytes,
+        cache_trim_bytes: cache_trim_bytes(cache_limit_bytes),
+    })
+}
+
 fn cached_manifest(cache_key: &str) -> Option<ReaderManifest> {
     MANIFEST_CACHE
         .get_or_init(|| Mutex::new(HashMap::new()))
@@ -631,6 +704,15 @@ fn cache_manifest(cache_key: String, manifest: ReaderManifest) {
         .lock()
     {
         cache.insert(cache_key, manifest);
+    }
+}
+
+fn clear_manifest_cache() {
+    if let Ok(mut cache) = MANIFEST_CACHE
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+    {
+        cache.clear();
     }
 }
 
@@ -660,6 +742,16 @@ fn normalize_shunt(shunt: Option<String>) -> String {
     } else {
         shunt.to_string()
     }
+}
+
+fn normalize_cache_limit(cache_limit_bytes: Option<u64>) -> u64 {
+    cache_limit_bytes
+        .unwrap_or(DEFAULT_READER_CACHE_LIMIT_BYTES)
+        .clamp(MIN_READER_CACHE_LIMIT_BYTES, MAX_READER_CACHE_LIMIT_BYTES)
+}
+
+fn cache_trim_bytes(cache_limit_bytes: u64) -> u64 {
+    cache_limit_bytes.saturating_mul(82) / 100
 }
 
 fn capture_script_object<'a>(regex: &Regex, html: &'a str, name: &str) -> ApiResult<&'a str> {

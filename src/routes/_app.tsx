@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
-import { CalendarDaysIcon, HeartIcon, HouseIcon, UserRoundIcon } from 'lucide-react'
+import { CalendarDaysIcon, HeartIcon, HouseIcon, SettingsIcon, UserRoundIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { FloatingNav, type FloatingNavItem } from '@/components/floating-nav'
@@ -22,16 +22,19 @@ function AppRoute() {
     { id: 'home', icon: HouseIcon, label: 'Home', to: '/' },
     { id: 'weekly', icon: CalendarDaysIcon, label: 'Weekly', to: '/weekly' },
     { id: 'favorites', icon: HeartIcon, label: 'Favorites', to: '/favorites' },
+    { id: 'settings', icon: SettingsIcon, label: 'Settings', to: '/settings' },
     { id: 'me', icon: UserRoundIcon, label: 'Me', to: '/me' }
   ]
 
   const activeId = pathname.startsWith('/favorites')
     ? 'favorites'
-    : pathname.startsWith('/me')
-      ? 'me'
-      : pathname.startsWith('/weekly')
-        ? 'weekly'
-        : 'home'
+    : pathname.startsWith('/settings')
+      ? 'settings'
+      : pathname.startsWith('/me')
+        ? 'me'
+        : pathname.startsWith('/weekly')
+          ? 'weekly'
+          : 'home'
 
   return (
     <div className="relative h-screen">

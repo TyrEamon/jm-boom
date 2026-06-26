@@ -1,13 +1,56 @@
 import { createRootRoute, Outlet, useRouter } from '@tanstack/react-router'
-import { ArrowLeftIcon, HomeIcon } from 'lucide-react'
+import { ArrowLeftIcon, HomeIcon, ShieldAlertIcon } from 'lucide-react'
+import { useState } from 'react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createRootRoute({
-  component: () => <Outlet />,
+  component: RootLayout,
   notFoundComponent
 })
+
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <NsfwStartupDialog />
+    </>
+  )
+}
+
+function NsfwStartupDialog() {
+  const [open, setOpen] = useState(true)
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogMedia>
+            <ShieldAlertIcon className="size-8 text-destructive" />
+          </AlertDialogMedia>
+          <AlertDialogTitle>NSFW 内容警告</AlertDialogTitle>
+          <AlertDialogDescription>
+            本应用可能展示不适合未成年人或公共场合浏览的成人向内容。请确认你已达到当地法定年龄，并在私密、安全的环境中使用。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={() => setOpen(false)}>我已了解</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
 
 function notFoundComponent() {
   const router = useRouter()

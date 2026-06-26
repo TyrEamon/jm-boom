@@ -23,6 +23,14 @@ export type ComicReadPrefetchResult = {
   completed: number
 }
 
+export type ReaderCacheStatsResult = {
+  cacheDir: string
+  totalBytes: number
+  fileCount: number
+  cacheLimitBytes: number
+  cacheTrimBytes: number
+}
+
 export async function getComicReadManifest({
   readId,
   shunt = null,
@@ -45,12 +53,14 @@ export async function getComicReadPage({
   readId,
   index,
   shunt = null,
-  endpoint = null
+  endpoint = null,
+  cacheLimitBytes = null
 }: {
   readId: string
   index: number
   shunt?: string | null
   endpoint?: string | null
+  cacheLimitBytes?: number | null
 }): Promise<ComicReadPageResult> {
   ensureTauriRuntime()
 
@@ -58,7 +68,8 @@ export async function getComicReadPage({
     readId,
     index,
     shunt,
-    endpoint
+    endpoint,
+    cacheLimitBytes
   })
 }
 
@@ -67,13 +78,15 @@ export async function prefetchComicReadPages({
   centerIndex,
   radius = 3,
   shunt = null,
-  endpoint = null
+  endpoint = null,
+  cacheLimitBytes = null
 }: {
   readId: string
   centerIndex: number
   radius?: number
   shunt?: string | null
   endpoint?: string | null
+  cacheLimitBytes?: number | null
 }): Promise<ComicReadPrefetchResult> {
   ensureTauriRuntime()
 
@@ -82,8 +95,31 @@ export async function prefetchComicReadPages({
     centerIndex,
     radius,
     shunt,
-    endpoint
+    endpoint,
+    cacheLimitBytes
   })
+}
+
+export async function getReaderCacheStats(
+  cacheLimitBytes: number | null = null
+): Promise<ReaderCacheStatsResult> {
+  ensureTauriRuntime()
+
+  return invoke<ReaderCacheStatsResult>('get_reader_cache_stats', { cacheLimitBytes })
+}
+
+export async function clearReaderCache(
+  cacheLimitBytes: number | null = null
+): Promise<ReaderCacheStatsResult> {
+  ensureTauriRuntime()
+
+  return invoke<ReaderCacheStatsResult>('clear_reader_cache', { cacheLimitBytes })
+}
+
+export async function openReaderCacheDir(): Promise<void> {
+  ensureTauriRuntime()
+
+  return invoke('open_reader_cache_dir')
 }
 
 export function readerFileSrc(path: string) {

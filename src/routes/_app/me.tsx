@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { LoginDialog } from '@/features/user/login-dialog'
 import { getSignInData, signIn, type SignInDataResult, type SignInRecord } from '@/lib/api/user'
 import { cn } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settings-store'
 import { useUserStore } from '@/stores/user-store'
 
 export const Route = createFileRoute('/_app/me')({
@@ -33,7 +34,7 @@ export const Route = createFileRoute('/_app/me')({
 
 function ProfilePage() {
   const user = useUserStore(state => state.user)
-  const endpoint = useUserStore(state => state.endpoint)
+  const endpoint = useSettingsStore(state => state.api)
   const logout = useUserStore(state => state.logout)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const signInData = useQuery({
@@ -61,7 +62,7 @@ function ProfilePage() {
       return signIn({ userId: user.id, dailyId, endpoint })
     },
     onSuccess: result => {
-      toast.success(result.message || '签到成功')
+      toast.success(signInSuccessMessage(result.message))
       void signInData.refetch()
     },
     onError: error => {
@@ -130,6 +131,10 @@ function ProfilePage() {
       <LoginDialog open={isLoginOpen} onOpenChange={setIsLoginOpen} />
     </main>
   )
+}
+
+function signInSuccessMessage(message: string) {
+  return /J\s*coin\s*:\s*\d+.*EXP\s*:\s*\d+/i.test(message) ? '签到成功' : message || '签到成功'
 }
 
 function GuestPanel({ onLogin }: { onLogin: () => void }) {

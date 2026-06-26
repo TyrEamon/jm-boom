@@ -12,6 +12,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useSettingsStore } from '@/stores/settings-store'
 import { useUserStore } from '@/stores/user-store'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 
@@ -24,8 +25,18 @@ type LoginDialogProps = {
 export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogProps) {
   const login = useUserStore(state => state.login)
   const isLoggingIn = useUserStore(state => state.isLoggingIn)
+  const endpoint = useSettingsStore(state => state.api)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setUsername('')
+      setPassword('')
+    }
+
+    onOpenChange(nextOpen)
+  }
 
   async function handleSubmit() {
     const nextUsername = username.trim()
@@ -36,9 +47,9 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
     }
 
     try {
-      await login({ username: nextUsername, password: nextPassword })
+      await login({ username: nextUsername, password: nextPassword, endpoint })
       toast.success('登录成功')
-      onOpenChange(false)
+      handleOpenChange(false)
       onLoginSuccess?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))
@@ -46,10 +57,10 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>登录禁漫天堂</DialogTitle>
+          <DialogTitle>账号登录</DialogTitle>
           <DialogDescription>使用禁漫天堂账号登录后同步个人资料和签到记录</DialogDescription>
         </DialogHeader>
         <FieldGroup>

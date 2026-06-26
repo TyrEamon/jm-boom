@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { FeedComic } from '@/lib/api/home'
-
-const SHOW_COVER_MASK = true
+import { useSettingsStore } from '@/stores/settings-store'
 
 export function FeedHeader({
   title,
@@ -44,16 +43,18 @@ export function FeedHeader({
 }
 
 export function ComicGrid({ items }: { items: FeedComic[] }) {
+  const hideCovers = useSettingsStore(state => state.hideCovers)
+
   return (
     <div className="grid grid-cols-4 gap-6">
       {items.map(item => (
-        <ComicCard key={item.id} item={item} />
+        <ComicCard key={item.id} item={item} hideCover={hideCovers} />
       ))}
     </div>
   )
 }
 
-function ComicCard({ item }: { item: FeedComic }) {
+function ComicCard({ item, hideCover }: { item: FeedComic; hideCover: boolean }) {
   return (
     <Link
       to="/comic/$comicId"
@@ -64,7 +65,7 @@ function ComicCard({ item }: { item: FeedComic }) {
         size="sm"
         className="gap-0 overflow-hidden py-0 transition-shadow hover:cursor-pointer hover:shadow-xl"
       >
-        <ComicCover id={item.id} title={item.title} image={item.image} />
+        <ComicCover id={item.id} title={item.title} image={item.image} hideCover={hideCover} />
         <CardContent className="space-y-1.5 p-3">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -79,7 +80,17 @@ function ComicCard({ item }: { item: FeedComic }) {
   )
 }
 
-function ComicCover({ id, title, image }: { id: string; title: string; image: string }) {
+function ComicCover({
+  id,
+  title,
+  image,
+  hideCover
+}: {
+  id: string
+  title: string
+  image: string
+  hideCover: boolean
+}) {
   const [hasImageError, setHasImageError] = useState(false)
   const shouldShowImage = image.length > 0 && !hasImageError
 
@@ -101,7 +112,7 @@ function ComicCover({ id, title, image }: { id: string; title: string; image: st
       ) : (
         <CoverPlaceholder />
       )}
-      {SHOW_COVER_MASK ? <CoverMask /> : null}
+      {hideCover ? <CoverMask /> : null}
       <div className="absolute top-2 left-2 z-20 rounded-full border border-input/80 bg-background/45 px-2 py-1 text-[10px] backdrop-blur">
         JM {id}
       </div>

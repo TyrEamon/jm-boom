@@ -20,12 +20,14 @@ import {
 import { ComicHero } from './hero'
 import { RelatedPanel } from './related'
 import { BackTop, ComicDetailSkeleton, StatePanel } from './shared'
+import { useSettingsStore } from '@/stores/settings-store'
 
 export function ComicDetailPage({ comicId }: { comicId: string }) {
   const router = useRouter()
+  const endpoint = useSettingsStore(state => state.api)
   const detail = useQuery({
-    queryKey: ['jm-comic-detail', comicId],
-    queryFn: () => getComicDetail(comicId),
+    queryKey: ['jm-comic-detail', endpoint, comicId],
+    queryFn: () => getComicDetail(comicId, endpoint),
     staleTime: DETAIL_STALE_TIME,
     gcTime: DETAIL_GC_TIME,
     refetchOnMount: false,
@@ -60,11 +62,12 @@ export function ComicDetailPage({ comicId }: { comicId: string }) {
 }
 
 function ComicDetailView({ comic }: { comic: ComicDetail }) {
+  const endpoint = useSettingsStore(state => state.api)
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
   const albumId = comic.seriesId || comic.id
   const commentsQuery = useInfiniteQuery({
-    queryKey: ['jm-comic-comments', comic.id],
-    queryFn: ({ pageParam }) => getComicComments({ comicId: comic.id, page: pageParam }),
+    queryKey: ['jm-comic-comments', endpoint, comic.id],
+    queryFn: ({ pageParam }) => getComicComments({ comicId: comic.id, page: pageParam, endpoint }),
     initialPageParam: 1,
     enabled: isCommentsOpen,
     staleTime: COMMENTS_STALE_TIME,

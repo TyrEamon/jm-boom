@@ -5,7 +5,9 @@ use api::{
     ComicCommentsResult, ComicDetailResult, HomeFeedResult, LoginResult, RemoteSettingResult,
     SearchAlbumsResult, SignInDataResult, SignInResult, WeekFiltersResult, WeekItemsResult,
 };
-use reader::{ComicReadManifestResult, ComicReadPageResult, ComicReadPrefetchResult};
+use reader::{
+    ComicReadManifestResult, ComicReadPageResult, ComicReadPrefetchResult, ReaderCacheStatsResult,
+};
 
 #[tauri::command]
 async fn get_remote_setting(endpoint: Option<String>) -> Result<RemoteSettingResult, String> {
@@ -110,6 +112,27 @@ fn clear_session() {
 }
 
 #[tauri::command]
+fn get_reader_cache_stats(
+    app: tauri::AppHandle,
+    cache_limit_bytes: Option<u64>,
+) -> Result<ReaderCacheStatsResult, String> {
+    reader::get_reader_cache_stats(&app, cache_limit_bytes).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn clear_reader_cache(
+    app: tauri::AppHandle,
+    cache_limit_bytes: Option<u64>,
+) -> Result<ReaderCacheStatsResult, String> {
+    reader::clear_reader_cache(&app, cache_limit_bytes).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn open_reader_cache_dir(app: tauri::AppHandle) -> Result<(), String> {
+    reader::open_reader_cache_dir(&app).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 async fn get_comic_read_manifest(
     read_id: String,
     shunt: Option<String>,
@@ -127,8 +150,9 @@ async fn get_comic_read_page(
     index: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    cache_limit_bytes: Option<u64>,
 ) -> Result<ComicReadPageResult, String> {
-    reader::get_comic_read_page(&app, read_id, index, shunt, endpoint)
+    reader::get_comic_read_page(&app, read_id, index, shunt, endpoint, cache_limit_bytes)
         .await
         .map_err(|error| error.to_string())
 }
@@ -141,10 +165,19 @@ async fn prefetch_comic_read_pages(
     radius: Option<u32>,
     shunt: Option<String>,
     endpoint: Option<String>,
+    cache_limit_bytes: Option<u64>,
 ) -> Result<ComicReadPrefetchResult, String> {
-    reader::prefetch_comic_read_pages(&app, read_id, center_index, radius, shunt, endpoint)
-        .await
-        .map_err(|error| error.to_string())
+    reader::prefetch_comic_read_pages(
+        &app,
+        read_id,
+        center_index,
+        radius,
+        shunt,
+        endpoint,
+        cache_limit_bytes,
+    )
+    .await
+    .map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -163,6 +196,9 @@ pub fn run() {
             get_sign_in_data,
             sign_in,
             clear_session,
+            get_reader_cache_stats,
+            clear_reader_cache,
+            open_reader_cache_dir,
             get_comic_read_manifest,
             get_comic_read_page,
             prefetch_comic_read_pages

@@ -9,19 +9,24 @@ import {
 } from '@/lib/api/reader'
 import {
   PAGE_LOAD_DEBOUNCE_MS,
-  PREFETCH_RADIUS,
   PREFETCH_SETTLE_MS,
   READER_GC_TIME,
   READER_STALE_TIME
 } from './constants'
+import { useSettingsStore } from '@/stores/settings-store'
 
 export function useReaderPages(comicId: string) {
+  const endpoint = useSettingsStore(state => state.api)
+  const shunt = useSettingsStore(state => state.shunt)
+  const prefetchCount = useSettingsStore(state => state.prefetchCount)
+  const readerCacheLimitMb = useSettingsStore(state => state.readerCacheLimitMb)
+  const cacheLimitBytes = readerCacheLimitMb * 1024 * 1024
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loadIndex, setLoadIndex] = useState(0)
 
   const manifest = useQuery({
-    queryKey: ['jm-reader-manifest', comicId],
-    queryFn: () => getComicReadManifest({ readId: comicId }),
+    queryKey: ['jm-reader-manifest', endpoint, shunt, comicId],
+    queryFn: () => getComicReadManifest({ readId: comicId, shunt, endpoint }),
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
     refetchOnMount: false,
@@ -29,12 +34,22 @@ export function useReaderPages(comicId: string) {
   })
   const pageCount = manifest.data?.pageCount ?? 0
   const page = useQuery({
-    queryKey: ['jm-reader-page', comicId, loadIndex, manifest.data?.shunt],
+    queryKey: [
+      'jm-reader-page',
+      endpoint,
+      shunt,
+      cacheLimitBytes,
+      comicId,
+      loadIndex,
+      manifest.data?.shunt
+    ],
     queryFn: () =>
       getComicReadPage({
         readId: comicId,
         index: loadIndex,
-        shunt: manifest.data?.shunt
+        shunt: manifest.data?.shunt ?? shunt,
+        endpoint,
+        cacheLimitBytes
       }),
     enabled: manifest.isSuccess && pageCount > 0,
     staleTime: READER_STALE_TIME,
@@ -80,7 +95,7 @@ export function useReaderPages(comicId: string) {
   useEffect(() => {
     setCurrentIndex(0)
     setLoadIndex(0)
-  }, [comicId])
+  }, [comicId, endpoint, shunt])
 
   useEffect(() => {
     if (currentIndex < pageCount || pageCount === 0) {
@@ -110,7 +125,7 @@ export function useReaderPages(comicId: string) {
   }, [clampPageIndex, currentIndex, pageCount])
 
   useEffect(() => {
-    if (!manifest.data || pageCount === 0 || !isPageReady) {
+    if (!manifest.data || pageCount === 0 || !isPageReady || prefetchCount === 0) {
       return
     }
 
@@ -118,15 +133,26 @@ export function useReaderPages(comicId: string) {
       void prefetchComicReadPages({
         readId: comicId,
         centerIndex: currentIndex,
-        radius: PREFETCH_RADIUS,
-        shunt: manifest.data.shunt
+        radius: prefetchCount,
+        shunt: manifest.data.shunt,
+        endpoint,
+        cacheLimitBytes
       }).catch(error => {
         console.debug('Reader prefetch failed', error)
       })
     }, PREFETCH_SETTLE_MS)
 
     return () => window.clearTimeout(timer)
-  }, [comicId, currentIndex, isPageReady, manifest.data, pageCount])
+  }, [
+    cacheLimitBytes,
+    comicId,
+    currentIndex,
+    endpoint,
+    isPageReady,
+    manifest.data,
+    pageCount,
+    prefetchCount
+  ])
 
   return {
     currentIndex,
