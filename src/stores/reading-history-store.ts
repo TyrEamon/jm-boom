@@ -9,7 +9,6 @@ export type ReadingHistoryItem = {
   coverUrl: string
   chapterId: string
   chapterTitle: string
-  chapter: string
   pageIndex: number
   pageCount: number
   updatedAt: number
@@ -27,28 +26,20 @@ export const useReadingHistoryStore = create<ReadingHistoryState>()(
     set => ({
       items: [],
       upsert: item => {
-        const comicId = item.comicId.trim() || item.albumId.trim() || item.chapterId.trim()
         const nextItem: ReadingHistoryItem = {
           ...item,
-          comicId,
-          albumId: item.albumId.trim() || comicId,
           updatedAt: Date.now()
         }
 
         set(state => {
-          const items = [
-            nextItem,
-            ...state.items.filter(entry => entry.comicId !== comicId && entry.albumId !== comicId)
-          ]
+          const items = [nextItem, ...state.items.filter(entry => entry.comicId !== item.comicId)]
 
           return { items }
         })
       },
       remove: comicId => {
-        const targetId = comicId.trim()
-
         set(state => ({
-          items: state.items.filter(item => item.comicId !== targetId && item.albumId !== targetId)
+          items: state.items.filter(item => item.comicId !== comicId)
         }))
       },
       clear: () => {

@@ -3,6 +3,16 @@ import { Clock3Icon, ImageIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -27,19 +37,13 @@ function HistoryPage() {
             <h1 className="text-3xl font-semibold tracking-normal">历史观看</h1>
             <p className="mt-2 text-sm text-muted-foreground">本地保存的阅读进度</p>
           </div>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
+          <ClearHistoryDialog
             disabled={sortedItems.length === 0}
-            onClick={() => {
+            onConfirm={() => {
               clear()
               toast.success('阅读记录已清除')
             }}
-          >
-            <Trash2Icon className="size-4" />
-            清除记录
-          </Button>
+          />
         </header>
 
         {sortedItems.length === 0 ? (
@@ -56,15 +60,50 @@ function HistoryPage() {
   )
 }
 
+function ClearHistoryDialog({
+  disabled,
+  onConfirm
+}: {
+  disabled: boolean
+  onConfirm: () => void
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button type="button" variant="destructive" size="sm" disabled={disabled}>
+          <Trash2Icon className="size-4" />
+          清除记录
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <div className="flex items-start gap-3 py-1">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 dark:bg-destructive/10">
+            <Trash2Icon className="size-5 text-destructive" />
+          </div>
+          <div className="flex flex-col justify-center gap-1">
+            <AlertDialogTitle className="text-sm font-semibold">清除阅读记录</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              这会删除本地保存的全部阅读进度，清除后无法恢复。
+            </AlertDialogDescription>
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
+            确认清除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function HistoryCard({ item, hideCover }: { item: ReadingHistoryItem; hideCover: boolean }) {
   const [hasImageError, setHasImageError] = useState(false)
   const coverSrc = item.coverUrl?.trim() ?? ''
   const shouldShowImage = coverSrc.length > 0 && !hasImageError
   const progress = item.pageCount > 0 ? ((item.pageIndex + 1) / item.pageCount) * 100 : 0
-  const readId = item.chapterId || item.comicId
-  const albumId = item.albumId || item.comicId
-  const chapterTitle = item.chapterTitle || item.chapter || `JM ${readId}`
-  const title = item.title || `JM ${albumId}`
+  const title = item.title || `JM ${item.comicId}`
 
   useEffect(() => {
     setHasImageError(false)
@@ -73,11 +112,11 @@ function HistoryCard({ item, hideCover }: { item: ReadingHistoryItem; hideCover:
   return (
     <Link
       to="/reader/$comicId"
-      params={{ comicId: readId }}
+      params={{ comicId: item.chapterId }}
       search={{
         title,
-        chapter: chapterTitle,
-        albumId,
+        chapter: item.chapterTitle,
+        albumId: item.albumId,
         fromDetail: '',
         pageIndex: String(item.pageIndex),
         nextId: '',
@@ -106,7 +145,7 @@ function HistoryCard({ item, hideCover }: { item: ReadingHistoryItem; hideCover:
           )}
           {hideCover ? <CoverMask /> : null}
           <div className="absolute top-2 left-2 z-20 rounded-full border border-input/80 bg-background/45 px-2 py-1 text-[10px] backdrop-blur">
-            JM {albumId}
+            JM {item.comicId}
           </div>
           <div className="absolute right-2 bottom-2 left-2 z-20">
             <div className="h-1 overflow-hidden rounded-full bg-black/40">
@@ -122,7 +161,7 @@ function HistoryCard({ item, hideCover }: { item: ReadingHistoryItem; hideCover:
             <TooltipContent side="top">{title}</TooltipContent>
           </Tooltip>
           <p className="line-clamp-1 text-xs text-muted-foreground">
-            当前章节：{chapterTitle}
+            当前章节：{item.chapterTitle}
           </p>
           {item.author ? (
             <p className="line-clamp-1 text-xs text-muted-foreground">{item.author}</p>

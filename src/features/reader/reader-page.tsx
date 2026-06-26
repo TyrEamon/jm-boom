@@ -57,7 +57,6 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
       coverUrl,
       chapterId: comicId,
       chapterTitle: chapter,
-      chapter,
       pageIndex: currentIndex,
       pageCount
     })
