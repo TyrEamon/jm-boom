@@ -59,7 +59,7 @@ function ComicCard({ item, hideCover }: { item: FeedComic; hideCover: boolean })
     <Link
       to="/comic/$comicId"
       params={{ comicId: item.id }}
-      className="block focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="block focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <Card
         size="sm"
@@ -69,9 +69,9 @@ function ComicCard({ item, hideCover }: { item: FeedComic; hideCover: boolean })
         <CardContent className="space-y-1.5 p-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="truncate text-sm leading-5 font-semibold">{item.title}</div>
+              <div className="truncate text-sm font-semibold">{item.title}</div>
             </TooltipTrigger>
-            <TooltipContent>{item.title}</TooltipContent>
+            <TooltipContent side="top">{item.title}</TooltipContent>
           </Tooltip>
           <p className="line-clamp-1 text-xs text-muted-foreground">{item.author || 'N/A'}</p>
         </CardContent>
