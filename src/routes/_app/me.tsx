@@ -29,13 +29,14 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { useUserStore } from '@/stores/user-store'
 
 export const Route = createFileRoute('/_app/me')({
-  component: ProfilePage
+  component: MePage
 })
 
-function ProfilePage() {
+function MePage() {
   const user = useUserStore(state => state.user)
   const endpoint = useSettingsStore(state => state.api)
   const logout = useUserStore(state => state.logout)
+
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const signInData = useQuery({
     queryKey: ['jm-sign-in-data', endpoint, user?.id],
