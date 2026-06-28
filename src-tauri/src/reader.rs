@@ -59,6 +59,7 @@ struct PrefetchGeneration {
 #[derive(Debug, Clone, Copy)]
 enum ReaderPageMaterializeOrigin {
     Current,
+    Warm,
     Prefetch,
 }
 
@@ -66,6 +67,7 @@ impl ReaderPageMaterializeOrigin {
     fn as_str(self) -> &'static str {
         match self {
             Self::Current => "current",
+            Self::Warm => "warm",
             Self::Prefetch => "prefetch",
         }
     }
@@ -185,11 +187,19 @@ pub async fn get_comic_read_page(
     index: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    request_origin: Option<String>,
     cache_limit_bytes: Option<u64>,
 ) -> ApiResult<ComicReadPageResult> {
     let manifest = get_or_load_manifest(read_id, shunt, endpoint).await?;
 
-    materialize_reader_page(app, &manifest, index, normalize_cache_limit(cache_limit_bytes)).await
+    materialize_reader_page(
+        app,
+        &manifest,
+        index,
+        normalize_cache_limit(cache_limit_bytes),
+        request_origin,
+    )
+    .await
 }
 
 pub async fn prefetch_comic_read_pages(
@@ -199,6 +209,7 @@ pub async fn prefetch_comic_read_pages(
     radius: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    request_origin: Option<String>,
     cache_limit_bytes: Option<u64>,
 ) -> ApiResult<ComicReadPrefetchResult> {
     let manifest = get_or_load_manifest(read_id, shunt, endpoint).await?;
@@ -228,6 +239,7 @@ pub async fn prefetch_comic_read_pages(
             &mut pending,
             cache_limit_bytes,
             &generation,
+            request_origin.clone(),
         );
     }
 
@@ -243,6 +255,7 @@ pub async fn prefetch_comic_read_pages(
             &mut pending,
             cache_limit_bytes,
             &generation,
+            request_origin.clone(),
         );
     }
 
@@ -447,8 +460,9 @@ async fn materialize_reader_page(
     manifest: &ReaderManifest,
     index: u32,
     cache_limit_bytes: u64,
+    request_origin: Option<String>,
 ) -> ApiResult<ComicReadPageResult> {
-    materialize_reader_page_inner(app, manifest, index, cache_limit_bytes, None)
+    materialize_reader_page_inner(app, manifest, index, cache_limit_bytes, None, request_origin)
         .await?
         .ok_or_else(|| {
             ApiError::new(
@@ -464,13 +478,10 @@ async fn materialize_reader_page_inner(
     index: u32,
     cache_limit_bytes: u64,
     prefetch_generation: Option<PrefetchGeneration>,
+    request_origin: Option<String>,
 ) -> ApiResult<Option<ComicReadPageResult>> {
     let materialize_started_at = Instant::now();
-    let origin = if prefetch_generation.is_some() {
-        ReaderPageMaterializeOrigin::Prefetch
-    } else {
-        ReaderPageMaterializeOrigin::Current
-    };
+    let origin = resolve_reader_materialize_origin(prefetch_generation.is_some(), request_origin);
     let page = manifest
         .pages
         .get(index as usize)
@@ -480,6 +491,7 @@ async fn materialize_reader_page_inner(
     let cache_path = reader_page_cache_path(&cache_root, manifest, &page)?;
     let _current_interest = match origin {
         ReaderPageMaterializeOrigin::Current => Some(CurrentPageInterest::track(&cache_path)),
+        ReaderPageMaterializeOrigin::Warm => None,
         ReaderPageMaterializeOrigin::Prefetch => None,
     };
     let materialize_lock = reader_page_materialize_lock(&cache_path);
@@ -599,6 +611,7 @@ fn spawn_prefetch_task(
     pending: &mut VecDeque<u32>,
     cache_limit_bytes: u64,
     generation: &PrefetchGeneration,
+    request_origin: Option<String>,
 ) {
     let Some(index) = pending.pop_front() else {
         return;
@@ -614,6 +627,7 @@ fn spawn_prefetch_task(
             index,
             cache_limit_bytes,
             Some(generation),
+            request_origin,
         )
             .await
             .ok()
@@ -669,6 +683,21 @@ fn prefetch_indexes(center_index: u32, radius: u32, page_count: u32) -> Vec<u32>
     }
 
     indexes
+}
+
+fn resolve_reader_materialize_origin(
+    is_prefetch_generation: bool,
+    request_origin: Option<String>,
+) -> ReaderPageMaterializeOrigin {
+    if is_prefetch_generation {
+        return ReaderPageMaterializeOrigin::Prefetch;
+    }
+
+    match request_origin.as_deref() {
+        Some("warm") => ReaderPageMaterializeOrigin::Warm,
+        Some("prefetch") => ReaderPageMaterializeOrigin::Prefetch,
+        _ => ReaderPageMaterializeOrigin::Current,
+    }
 }
 
 async fn download_image_bytes(
@@ -748,34 +777,65 @@ fn write_reader_page_cache(
     let decode_elapsed = decode_started_at.elapsed();
     let (decoded_width, decoded_height) = decoded.dimensions();
 
-    let encode_started_at = Instant::now();
-    let webp_bytes = encode_scrambled_webp_cache(&decoded);
-    let encode_elapsed = encode_started_at.elapsed();
-    let write_started_at = Instant::now();
-    write_temp_reader_cache_file(cache_path, |temp_path| {
-        fs::write(temp_path, &webp_bytes).map_err(map_cache_error)
-    })?;
-    let write_elapsed = write_started_at.elapsed();
-    let output_bytes = file_size_bytes(cache_path);
-    let cleanup_started_at = Instant::now();
-    cleanup_reader_cache(cache_root, cache_limit_bytes)?;
-    let cleanup_elapsed = cleanup_started_at.elapsed();
-    log_reader_cache_timing(
-        manifest,
-        page,
-        origin,
-        "scrambled_webp_q75",
-        bytes.len(),
-        output_bytes,
-        &[
-            ("load_ms", load_elapsed),
-            ("reorder_ms", decode_elapsed),
-            ("encode_ms", encode_elapsed),
-            ("write_ms", write_elapsed),
-            ("cleanup_ms", cleanup_elapsed),
-            ("total_ms", total_started_at.elapsed()),
-        ],
-    );
+    if matches!(origin, ReaderPageMaterializeOrigin::Current) {
+        let encode_started_at = Instant::now();
+        let webp_bytes = encode_scrambled_webp_cache(&decoded);
+        let encode_elapsed = encode_started_at.elapsed();
+        let write_started_at = Instant::now();
+        write_temp_reader_cache_file(cache_path, |temp_path| {
+            fs::write(temp_path, &webp_bytes).map_err(map_cache_error)
+        })?;
+        let write_elapsed = write_started_at.elapsed();
+        let output_bytes = file_size_bytes(cache_path);
+        let cleanup_started_at = Instant::now();
+        cleanup_reader_cache(cache_root, cache_limit_bytes)?;
+        let cleanup_elapsed = cleanup_started_at.elapsed();
+        log_reader_cache_timing(
+            manifest,
+            page,
+            origin,
+            "current_webp_q75",
+            bytes.len(),
+            output_bytes,
+            &[
+                ("load_ms", load_elapsed),
+                ("reorder_ms", decode_elapsed),
+                ("encode_ms", encode_elapsed),
+                ("write_ms", write_elapsed),
+                ("cleanup_ms", cleanup_elapsed),
+                ("total_ms", total_started_at.elapsed()),
+            ],
+        );
+    } else {
+        let encode_started_at = Instant::now();
+        let webp_bytes = encode_scrambled_webp_cache(&decoded);
+        let encode_elapsed = encode_started_at.elapsed();
+        let write_started_at = Instant::now();
+        write_temp_reader_cache_file(cache_path, |temp_path| {
+            fs::write(temp_path, &webp_bytes).map_err(map_cache_error)
+        })?;
+        let write_elapsed = write_started_at.elapsed();
+        let output_bytes = file_size_bytes(cache_path);
+        let cleanup_started_at = Instant::now();
+        cleanup_reader_cache(cache_root, cache_limit_bytes)?;
+        let cleanup_elapsed = cleanup_started_at.elapsed();
+        log_reader_cache_timing(
+            manifest,
+            page,
+            origin,
+            "scrambled_webp_q75",
+            bytes.len(),
+            output_bytes,
+            &[
+                ("load_ms", load_elapsed),
+                ("reorder_ms", decode_elapsed),
+                ("encode_ms", encode_elapsed),
+                ("write_ms", write_elapsed),
+                ("cleanup_ms", cleanup_elapsed),
+                ("total_ms", total_started_at.elapsed()),
+            ],
+        );
+    }
 
     Ok((decoded_width, decoded_height))
 }

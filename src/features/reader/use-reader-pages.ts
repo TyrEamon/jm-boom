@@ -60,19 +60,20 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
     [cacheLimitBytes, comicId, endpoint, manifest.data?.shunt, shunt]
   )
   const fetchPage = useCallback(
-    (index: number) =>
+    (index: number, requestOrigin: 'visible' | 'warm' | 'prefetch' = 'visible') =>
       getComicReadPage({
         readId: comicId,
         index,
         shunt: manifest.data?.shunt ?? shunt,
         endpoint,
+        requestOrigin,
         cacheLimitBytes
       }),
     [cacheLimitBytes, comicId, endpoint, manifest.data?.shunt, shunt]
   )
   const page = useQuery({
     queryKey: pageQueryKey(effectiveCurrentIndex),
-    queryFn: () => fetchPage(effectiveCurrentIndex),
+    queryFn: () => fetchPage(effectiveCurrentIndex, 'visible'),
     enabled: manifest.isSuccess && pageCount > 0,
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
@@ -92,7 +93,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
   const warmPages = useQueries({
     queries: warmPageIndexes.map(index => ({
       queryKey: pageQueryKey(index),
-      queryFn: () => fetchPage(index),
+      queryFn: () => fetchPage(index, 'warm'),
       enabled: manifest.isSuccess && isPageReady,
       staleTime: READER_STALE_TIME,
       gcTime: READER_GC_TIME,
@@ -156,7 +157,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
       return
     }
 
-    const prefetchStep = Math.max(1, Math.ceil(prefetchCount / 2))
+    const prefetchStep = Math.max(1, Math.ceil(prefetchCount / 4))
     const prefetchKey = [
       endpoint,
       manifest.data.shunt,
@@ -186,6 +187,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
         radius: prefetchCount,
         shunt: manifest.data.shunt,
         endpoint,
+        requestOrigin: 'prefetch',
         cacheLimitBytes
       }).catch(error => {
         console.debug('Reader prefetch failed', error)

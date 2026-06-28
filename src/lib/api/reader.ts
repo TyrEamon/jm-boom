@@ -54,12 +54,14 @@ export async function getComicReadPage({
   index,
   shunt = null,
   endpoint = null,
+  requestOrigin = null,
   cacheLimitBytes = null
 }: {
   readId: string
   index: number
   shunt?: string | null
   endpoint?: string | null
+  requestOrigin?: 'visible' | 'warm' | 'prefetch' | null
   cacheLimitBytes?: number | null
 }): Promise<ComicReadPageResult> {
   ensureTauriRuntime()
@@ -69,6 +71,7 @@ export async function getComicReadPage({
     index,
     shunt,
     endpoint,
+    requestOrigin,
     cacheLimitBytes
   })
 }
@@ -79,6 +82,7 @@ export async function prefetchComicReadPages({
   radius,
   shunt = null,
   endpoint = null,
+  requestOrigin = null,
   cacheLimitBytes = null
 }: {
   readId: string
@@ -86,6 +90,7 @@ export async function prefetchComicReadPages({
   radius: number
   shunt?: string | null
   endpoint?: string | null
+  requestOrigin?: 'visible' | 'warm' | 'prefetch' | null
   cacheLimitBytes?: number | null
 }): Promise<ComicReadPrefetchResult> {
   ensureTauriRuntime()
@@ -96,6 +101,7 @@ export async function prefetchComicReadPages({
     radius,
     shunt,
     endpoint,
+    requestOrigin,
     cacheLimitBytes
   })
 }

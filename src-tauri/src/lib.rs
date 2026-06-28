@@ -190,11 +190,20 @@ async fn get_comic_read_page(
     index: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    request_origin: Option<String>,
     cache_limit_bytes: Option<u64>,
 ) -> Result<ComicReadPageResult, String> {
-    reader::get_comic_read_page(&app, read_id, index, shunt, endpoint, cache_limit_bytes)
-        .await
-        .map_err(|error| error.to_string())
+    reader::get_comic_read_page(
+        &app,
+        read_id,
+        index,
+        shunt,
+        endpoint,
+        request_origin,
+        cache_limit_bytes,
+    )
+    .await
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -205,6 +214,7 @@ async fn prefetch_comic_read_pages(
     radius: u32,
     shunt: Option<String>,
     endpoint: Option<String>,
+    request_origin: Option<String>,
     cache_limit_bytes: Option<u64>,
 ) -> Result<ComicReadPrefetchResult, String> {
     reader::prefetch_comic_read_pages(
@@ -214,6 +224,7 @@ async fn prefetch_comic_read_pages(
         radius,
         shunt,
         endpoint,
+        request_origin,
         cache_limit_bytes,
     )
     .await
