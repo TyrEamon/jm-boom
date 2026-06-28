@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "label": "jmboom",
+        "label": "main",
         "title": "JM Boom",
         "width": 1068,
         "height": 680,
