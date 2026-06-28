@@ -91,9 +91,6 @@ function SectionHeader({ section }: { section: HomeFeedSection }) {
     <div className="flex items-end justify-between gap-3">
       <div className="space-y-1">
         <h2 className="text-xl font-semibold tracking-normal">{section.title}</h2>
-        <p className="text-sm text-muted-foreground">
-          显示前 {Math.min(section.items.length, HOME_SECTION_PREVIEW_LIMIT)} 部
-        </p>
       </div>
       {mode ? (
         <Button asChild variant="outline" size="sm">
