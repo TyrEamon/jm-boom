@@ -14,6 +14,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { getFavoriteComics } from '@/lib/api/comic'
+import { FAVORITES_QUERY_GC_TIME, FAVORITES_QUERY_STALE_TIME } from '@/lib/query-cache'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUserStore } from '@/stores/user-store'
 
@@ -26,8 +27,6 @@ export const Route = createFileRoute('/_app/favorites')({
   component: FavoritesPage
 })
 
-const FAVORITES_STALE_TIME = 30 * 1000
-const FAVORITES_GC_TIME = 10 * 60 * 1000
 const ALL_FAVORITES_FOLDER = '__all__'
 
 function FavoritesPage() {
@@ -43,8 +42,8 @@ function FavoritesPage() {
         folderId: activeFolderId,
         endpoint
       }),
-    staleTime: FAVORITES_STALE_TIME,
-    gcTime: FAVORITES_GC_TIME,
+    staleTime: FAVORITES_QUERY_STALE_TIME,
+    gcTime: FAVORITES_QUERY_GC_TIME,
     refetchOnWindowFocus: false
   })
   const folders = useMemo(

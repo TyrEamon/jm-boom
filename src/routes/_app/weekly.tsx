@@ -14,16 +14,17 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getWeekFilters, getWeekItems } from '@/lib/api/home'
+import {
+  LIST_QUERY_GC_TIME,
+  LIST_QUERY_STALE_TIME,
+  LONG_LIVED_FILTERS_GC_TIME,
+  LONG_LIVED_FILTERS_STALE_TIME
+} from '@/lib/query-cache'
 import { useSettingsStore } from '@/stores/settings-store'
 
 export const Route = createFileRoute('/_app/weekly')({
   component: WeeklyPage
 })
-
-const WEEK_FILTERS_STALE_TIME = 12 * 60 * 60 * 1000
-const WEEK_FILTERS_GC_TIME = 24 * 60 * 60 * 1000
-const WEEK_ITEMS_STALE_TIME = 30 * 60 * 1000
-const WEEK_ITEMS_GC_TIME = 60 * 60 * 1000
 
 function WeeklyPage() {
   const endpoint = useSettingsStore(state => state.api)
@@ -33,8 +34,8 @@ function WeeklyPage() {
   const filters = useQuery({
     queryKey: ['week-filters', endpoint],
     queryFn: () => getWeekFilters(endpoint),
-    staleTime: WEEK_FILTERS_STALE_TIME,
-    gcTime: WEEK_FILTERS_GC_TIME,
+    staleTime: LONG_LIVED_FILTERS_STALE_TIME,
+    gcTime: LONG_LIVED_FILTERS_GC_TIME,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })
@@ -70,10 +71,10 @@ function WeeklyPage() {
         categoryId: selectedCategoryId,
         typeId: selectedTypeId,
         endpoint
-      }),
+    }),
     enabled: canLoadItems,
-    staleTime: WEEK_ITEMS_STALE_TIME,
-    gcTime: WEEK_ITEMS_GC_TIME,
+    staleTime: LIST_QUERY_STALE_TIME,
+    gcTime: LIST_QUERY_GC_TIME,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

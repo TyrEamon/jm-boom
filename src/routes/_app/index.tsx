@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
 import { Button } from '@/components/ui/button'
 import { getHomeFeed, type HomeFeedSection, type HomeSectionListMode } from '@/lib/api/home'
+import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
 import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settings-store'
 
@@ -13,8 +14,6 @@ export const Route = createFileRoute('/_app/')({
   component: HomePage
 })
 
-const HOME_FEED_STALE_TIME = 5 * 60 * 1000
-const HOME_FEED_GC_TIME = 60 * 60 * 1000
 const HOME_SECTION_PREVIEW_LIMIT = 8
 const EMPTY_HOME_SECTIONS: HomeFeedSection[] = []
 
@@ -23,8 +22,8 @@ function HomePage() {
   const homeFeed = useQuery({
     queryKey: ['jm-home-feed', endpoint],
     queryFn: () => getHomeFeed(endpoint),
-    staleTime: HOME_FEED_STALE_TIME,
-    gcTime: HOME_FEED_GC_TIME,
+    staleTime: LIST_QUERY_STALE_TIME,
+    gcTime: LIST_QUERY_GC_TIME,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

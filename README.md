@@ -96,3 +96,13 @@ bun run tauri dev
 ## License
 
 遵循 [MIT](./LICENSE) 协议。
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ppxb%2Fjm-boom&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&legend=top-left" />
+ </picture>
+</a>

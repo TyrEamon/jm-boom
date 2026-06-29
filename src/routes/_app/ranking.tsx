@@ -20,6 +20,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { getHomeSectionList } from '@/lib/api/home'
+import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
 import {
   defaultRankingCategory,
   rankingCategoryApiValue,
@@ -31,9 +32,6 @@ import { useSettingsStore } from '@/stores/settings-store'
 export const Route = createFileRoute('/_app/ranking')({
   component: RankingPage
 })
-
-const RANKING_STALE_TIME = 5 * 60 * 1000
-const RANKING_GC_TIME = 30 * 60 * 1000
 
 function RankingPage() {
   const endpoint = useSettingsStore(state => state.api)
@@ -53,8 +51,8 @@ function RankingPage() {
         order,
         endpoint
       }),
-    staleTime: RANKING_STALE_TIME,
-    gcTime: RANKING_GC_TIME,
+    staleTime: LIST_QUERY_STALE_TIME,
+    gcTime: LIST_QUERY_GC_TIME,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

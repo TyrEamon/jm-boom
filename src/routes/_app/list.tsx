@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { getHomeSectionList, type HomeSectionListMode } from '@/lib/api/home'
+import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
 import {
   defaultRankingCategory,
   rankingCategoryApiValue,
@@ -52,9 +53,6 @@ export const Route = createFileRoute('/_app/list')({
   }),
   component: HomeSectionListPage
 })
-
-const SECTION_LIST_STALE_TIME = 5 * 60 * 1000
-const SECTION_LIST_GC_TIME = 30 * 60 * 1000
 
 const WEEK_OPTIONS: FilterOption[] = [
   { label: '周一', value: '1' },
@@ -109,8 +107,8 @@ function HomeSectionListPage() {
         order: search.mode === 'ranking' ? order : null,
         endpoint
       }),
-    staleTime: SECTION_LIST_STALE_TIME,
-    gcTime: SECTION_LIST_GC_TIME,
+    staleTime: LIST_QUERY_STALE_TIME,
+    gcTime: LIST_QUERY_GC_TIME,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

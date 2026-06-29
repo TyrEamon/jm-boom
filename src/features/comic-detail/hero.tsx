@@ -30,7 +30,6 @@ export function ComicHero({
   onFavoriteClick: () => void
   favoriteBusy?: boolean
 }) {
-  const authors = comic.author.length > 0 ? comic.author.join(' / ') : 'N/A'
   const albumId = resolveAlbumId(comic)
   const nextChapter = getNextChapter(comic.id, comic.series)
   const statusBadges = [
@@ -58,7 +57,7 @@ export function ComicHero({
           <h1 className="text-4xl leading-tight font-bold tracking-normal">{comic.title}</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <UserRoundIcon className="size-4" />
-            <span className="truncate">{authors}</span>
+            <SearchLinks items={comic.author} fallback="N/A" className="min-w-0" />
           </div>
         </div>
 
@@ -182,10 +181,54 @@ function PillGroup({
     <div className="flex flex-wrap items-center gap-2">
       <span className="w-10 text-xs text-muted-foreground">{title}</span>
       {items.map(item => (
-        <Badge key={`${title}-${item}`} variant={variant}>
-          {item}
+        <Badge key={`${title}-${item}`} variant={variant} asChild>
+          <Link
+            to="/search"
+            search={{
+              keyword: item,
+              page: 1,
+              sortBy: 1
+            }}
+          >
+            {item}
+          </Link>
         </Badge>
       ))}
     </div>
+  )
+}
+
+function SearchLinks({
+  items,
+  fallback,
+  className
+}: {
+  items: string[]
+  fallback: string
+  className?: string
+}) {
+  if (items.length === 0) {
+    return <span className={className}>{fallback}</span>
+  }
+
+  return (
+    <span className={`flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 ${className ?? ''}`}>
+      {items.map((item, index) => (
+        <span key={item} className="inline-flex min-w-0 items-center gap-x-1">
+          {index > 0 ? <span className="text-muted-foreground/70">/</span> : null}
+          <Link
+            to="/search"
+            search={{
+              keyword: item,
+              page: 1,
+              sortBy: 1
+            }}
+            className="max-w-[28rem] truncate underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            {item}
+          </Link>
+        </span>
+      ))}
+    </span>
   )
 }

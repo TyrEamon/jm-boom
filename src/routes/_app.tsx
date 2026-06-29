@@ -4,6 +4,7 @@ import {
   CalendarDaysIcon,
   HistoryIcon,
   HouseIcon,
+  SearchIcon,
   TrophyIcon,
   SettingsIcon,
   UserRoundIcon
@@ -27,7 +28,8 @@ const NAV_ITEMS: FloatingNavItem[] = [
   { id: 'favorites', icon: BookmarkIcon, label: '收藏', to: '/favorites' },
   { id: 'history', icon: HistoryIcon, label: '历史观看', to: '/history' },
   { id: 'settings', icon: SettingsIcon, label: '设置', to: '/settings' },
-  { id: 'me', icon: UserRoundIcon, label: '我的', to: '/me' }
+  { id: 'me', icon: UserRoundIcon, label: '我的', to: '/me' },
+  { id: 'search', icon: SearchIcon, label: '搜索', to: '/search', separatorBefore: true }
 ]
 
 function AppRoute() {
