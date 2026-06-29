@@ -6,9 +6,10 @@ mod updater;
 use api::{
     ApiEndpointProbe, ComicCommentsResult, ComicDetailResult, FavoriteListResult,
     FavoriteToggleResult, HomeFeedResult, HomeSectionListResult, LoginResult, RemoteSettingResult,
-    SearchAlbumsResult, SignInDataResult, SignInResult, WeekFiltersResult, WeekItemsResult,
+    SearchResultContract, SignInDataResult, SignInResult, WeekFiltersResult, WeekItemsResult,
 };
 use reader::{ComicReadManifestResult, ComicReadPageResult, ReaderCacheStatsResult};
+use std::collections::HashMap;
 
 #[tauri::command]
 async fn get_remote_setting(endpoint: Option<String>) -> Result<RemoteSettingResult, String> {
@@ -26,11 +27,12 @@ async fn discover_api_endpoints() -> Result<Vec<ApiEndpointProbe>, String> {
 
 #[tauri::command]
 async fn search_comics(
-    query: String,
+    keyword: String,
     page: Option<u32>,
+    extern_payload: Option<HashMap<String, serde_json::Value>>,
     endpoint: Option<String>,
-) -> Result<SearchAlbumsResult, String> {
-    api::search_comics(query, page, endpoint)
+) -> Result<SearchResultContract, String> {
+    api::search_comics(keyword, page, extern_payload, endpoint)
         .await
         .map_err(|error| error.to_string())
 }

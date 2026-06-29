@@ -23,6 +23,8 @@ const HOST_CONFIG_URLS: [&str; 2] = [
 ];
 const UNSUPPORTED_HOME_SECTION_TITLES: [&str; 4] = ["禁漫小说", "禁漫书库", "禁漫書庫", "禁漫小說"];
 const HOME_SECTION_LIST_PAGE_SIZE: usize = 20;
+const SEARCH_PAGE_SIZE: usize = 80;
+const JM_PLUGIN_ID: &str = "bf99008d-010b-4f17-ac7c-61a9b57dc3d9";
 static IMG_HOST_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 static SHARED_HTTP_CLIENT: OnceLock<Mutex<Option<reqwest::Client>>> = OnceLock::new();
 static NETWORK_PROXY_CONFIG: OnceLock<Mutex<NetworkProxyConfig>> = OnceLock::new();
@@ -76,32 +78,59 @@ struct ApiResponse<T> {
 
 #[derive(Debug, Deserialize)]
 struct SearchPayload {
-    search_query: String,
     #[serde(deserialize_with = "deserialize_u32_from_string_or_number")]
     total: u32,
+    #[serde(default)]
     redirect_aid: Option<String>,
-    content: Vec<SearchContentItem>,
+    #[serde(default)]
+    content: Vec<SearchComicPayload>,
 }
 
-#[derive(Debug, Deserialize)]
-struct SearchContentItem {
-    #[serde(deserialize_with = "deserialize_string_from_string_or_number")]
+#[derive(Debug, Default, Deserialize)]
+struct SearchComicPayload {
+    #[serde(default, deserialize_with = "deserialize_string_from_any")]
     id: String,
+    #[serde(default, deserialize_with = "deserialize_string_from_any")]
     author: String,
+    #[serde(default, deserialize_with = "deserialize_optional_string_from_any")]
     description: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_string_from_any")]
     name: String,
+    #[serde(default, deserialize_with = "deserialize_string_from_any")]
     image: String,
+    #[serde(default)]
     category: Option<SearchCategory>,
+    #[serde(default)]
     category_sub: Option<SearchCategory>,
     #[serde(
         default,
         deserialize_with = "deserialize_optional_i64_from_string_or_number"
     )]
     update_at: Option<i64>,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    likes: u32,
+    #[serde(
+        default,
+        alias = "totalViews",
+        deserialize_with = "deserialize_u32_from_any"
+    )]
+    total_views: u32,
+    #[serde(default, deserialize_with = "deserialize_string_vec_from_any")]
+    tags: Vec<String>,
+    #[serde(default, deserialize_with = "deserialize_string_vec_from_any")]
+    works: Vec<String>,
+    #[serde(default, deserialize_with = "deserialize_string_vec_from_any")]
+    actors: Vec<String>,
+    #[serde(default, deserialize_with = "deserialize_bool_from_any")]
+    liked: bool,
+    #[serde(default, deserialize_with = "deserialize_bool_from_any")]
+    is_favorite: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 struct SearchCategory {
+    #[serde(default, deserialize_with = "deserialize_string_from_any")]
+    id: String,
     title: Option<String>,
 }
 
@@ -552,28 +581,73 @@ pub struct SignInResult {
 }
 
 #[derive(Debug, Serialize)]
-pub struct SearchAlbumsResult {
-    pub query: String,
-    pub page: u32,
-    pub total: u32,
-    pub endpoint: Option<String>,
-    #[serde(rename = "redirectAid")]
-    pub redirect_aid: Option<String>,
-    pub items: Vec<SearchAlbum>,
+pub struct SearchResultContract {
+    pub source: String,
+    pub r#extern: HashMap<String, serde_json::Value>,
+    pub scheme: SearchResultScheme,
+    pub data: SearchResultData,
+    pub paging: SearchPagingInfo,
+    pub items: Vec<PluginComicListItem>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct SearchAlbum {
+#[derive(Clone, Debug, Serialize)]
+pub struct SearchResultScheme {
+    pub version: String,
+    #[serde(rename = "type")]
+    pub scheme_type: String,
+    pub source: String,
+    pub list: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SearchResultData {
+    pub paging: SearchPagingInfo,
+    pub items: Vec<PluginComicListItem>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SearchPagingInfo {
+    pub page: u32,
+    pub pages: u32,
+    pub total: u32,
+    #[serde(rename = "hasReachedMax")]
+    pub has_reached_max: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PluginComicListItem {
+    pub source: String,
     pub id: String,
     pub title: String,
-    pub author: String,
-    pub description: String,
-    pub image: String,
-    pub tags: Vec<String>,
-    pub href: String,
-    pub updated_at: Option<i64>,
-    #[serde(rename = "isRedirect")]
-    pub is_redirect: bool,
+    pub subtitle: String,
+    pub finished: bool,
+    #[serde(rename = "likesCount")]
+    pub likes_count: u32,
+    #[serde(rename = "viewsCount")]
+    pub views_count: u32,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+    pub cover: PluginImageItem,
+    pub metadata: Vec<PluginMetadataListItem>,
+    pub raw: HashMap<String, serde_json::Value>,
+    pub r#extern: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PluginImageItem {
+    pub id: String,
+    pub url: String,
+    pub name: String,
+    pub path: String,
+    pub r#extern: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PluginMetadataListItem {
+    #[serde(rename = "type")]
+    pub metadata_type: String,
+    pub name: String,
+    pub value: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -856,23 +930,19 @@ pub async fn discover_api_endpoints() -> ApiResult<Vec<ApiEndpointProbe>> {
 }
 
 pub async fn search_comics(
-    query: String,
+    keyword: String,
     page: Option<u32>,
+    extern_payload: Option<HashMap<String, serde_json::Value>>,
     endpoint: Option<String>,
-) -> ApiResult<SearchAlbumsResult> {
+) -> ApiResult<SearchResultContract> {
     let page = page.unwrap_or(1);
-    let query = query.trim().to_string();
+    let keyword = keyword.trim().to_string();
+    let extern_payload = normalize_search_extern(extern_payload);
+    let order = search_order_from_extern(&extern_payload);
     let endpoint = resolve_api_endpoint(endpoint)?;
 
-    if query.is_empty() {
-        return Ok(SearchAlbumsResult {
-            query,
-            page,
-            total: 0,
-            endpoint: None,
-            redirect_aid: None,
-            items: Vec::new(),
-        });
+    if keyword.is_empty() {
+        return Ok(build_search_result(page, 0, Vec::new(), extern_payload));
     }
 
     let client = build_http_client()?;
@@ -886,13 +956,35 @@ pub async fn search_comics(
         }
     };
 
+    if page == 1 {
+        if let Some(comic_id) = direct_search_comic_id(&keyword) {
+            match request_comic_detail(&client, &endpoint, &comic_id, &api_auth).await {
+                Ok(payload) => {
+                    let item = search_payload_from_detail(payload);
+
+                    return Ok(build_search_result(
+                        page,
+                        1,
+                        vec![map_search_comic_item(item, img_host.as_deref())],
+                        extern_payload,
+                    ));
+                }
+                Err(error) => {
+                    eprintln!("Failed direct search detail fallback for {comic_id}: {error}");
+                }
+            }
+        }
+    }
+
     request_search(
         &client,
         &endpoint,
-        &query,
+        &keyword,
         page,
+        &order,
         &api_auth,
         img_host.as_deref(),
+        extern_payload,
     )
     .await
 }
@@ -1683,19 +1775,21 @@ fn cache_img_host(endpoint: &str, img_host: &str) {
 async fn request_search(
     client: &reqwest::Client,
     endpoint: &str,
-    query: &str,
+    keyword: &str,
     page: u32,
+    order: &str,
     auth: &ApiAuth,
     img_host: Option<&str>,
-) -> ApiResult<SearchAlbumsResult> {
+    extern_payload: HashMap<String, serde_json::Value>,
+) -> ApiResult<SearchResultContract> {
     let mut payload: SearchPayload = request_api_data(
         client,
         endpoint,
         "search",
         &[
             ("page", page.to_string()),
-            ("o", "mr".to_string()),
-            ("search_query", query.to_string()),
+            ("o", order.to_string()),
+            ("search_query", keyword.to_string()),
         ],
         auth,
     )
@@ -1704,34 +1798,7 @@ async fn request_search(
     let items = payload
         .content
         .into_iter()
-        .map(|item| {
-            let mut tags = Vec::new();
-            let image = cover_image_url(img_host, &item.id).unwrap_or(item.image);
-
-            if let Some(title) = item.category.and_then(|category| category.title) {
-                if !title.is_empty() {
-                    tags.push(title);
-                }
-            }
-
-            if let Some(title) = item.category_sub.and_then(|category| category.title) {
-                if !title.is_empty() && !tags.contains(&title) {
-                    tags.push(title);
-                }
-            }
-
-            SearchAlbum {
-                href: format!("{endpoint}/album/{}", item.id),
-                id: item.id,
-                title: item.name,
-                author: item.author,
-                description: item.description.unwrap_or_default(),
-                image,
-                tags,
-                updated_at: item.update_at,
-                is_redirect: false,
-            }
-        })
+        .map(|item| map_search_comic_item(item, img_host))
         .collect::<Vec<_>>();
 
     let redirect_aid = payload.redirect_aid.take();
@@ -1739,31 +1806,25 @@ async fn request_search(
         redirect_aid
             .clone()
             .map(|id| {
-                vec![SearchAlbum {
-                    href: String::new(),
+                let item = SearchComicPayload {
                     id: id.clone(),
-                    title: format!("JM{id}"),
-                    author: String::new(),
-                    description: String::new(),
-                    image: String::new(),
-                    tags: Vec::new(),
-                    updated_at: None,
-                    is_redirect: true,
-                }]
+                    name: format!("JM{id}"),
+                    ..SearchComicPayload::default()
+                };
+
+                vec![map_search_comic_item(item, img_host)]
             })
             .unwrap_or(items)
     } else {
         items
     };
 
-    Ok(SearchAlbumsResult {
-        query: payload.search_query,
+    Ok(build_search_result(
         page,
-        total: payload.total,
-        endpoint: Some(endpoint.to_string()),
-        redirect_aid,
+        payload.total,
         items,
-    })
+        extern_payload,
+    ))
 }
 
 async fn request_home_feed(
@@ -2005,7 +2066,11 @@ async fn request_category_filter_list(
     let start = local_list_start(page);
     let request_page = (start / SOURCE_PAGE_SIZE) as u32;
     let offset = start % SOURCE_PAGE_SIZE;
-    let category = if category.is_empty() { "latest" } else { category };
+    let category = if category.is_empty() {
+        "latest"
+    } else {
+        category
+    };
     let order = if order.is_empty() { "new" } else { order };
     let payload: CategoryFilterPayload = request_api_data(
         client,
@@ -2533,6 +2598,386 @@ fn map_favorite_comic(item: FavoriteComicPayload, img_host: Option<&str>) -> Fee
         tags,
         updated_at: item.update_at,
     }
+}
+
+fn build_search_result(
+    page: u32,
+    total: u32,
+    items: Vec<PluginComicListItem>,
+    extern_payload: HashMap<String, serde_json::Value>,
+) -> SearchResultContract {
+    let has_reached_max = items.is_empty()
+        || items.len() < SEARCH_PAGE_SIZE
+        || (total > 0
+            && ((page.saturating_sub(1) as usize) * SEARCH_PAGE_SIZE + items.len())
+                >= total as usize);
+    let paging = SearchPagingInfo {
+        page,
+        pages: page,
+        total,
+        has_reached_max,
+    };
+    let scheme = SearchResultScheme {
+        version: "1.0.0".to_string(),
+        scheme_type: "searchResult".to_string(),
+        source: JM_PLUGIN_ID.to_string(),
+        list: "comicGrid".to_string(),
+    };
+    let data = SearchResultData {
+        paging: paging.clone(),
+        items: items.clone(),
+    };
+
+    SearchResultContract {
+        source: JM_PLUGIN_ID.to_string(),
+        r#extern: extern_payload,
+        scheme,
+        data,
+        paging,
+        items,
+    }
+}
+
+fn normalize_search_extern(
+    extern_payload: Option<HashMap<String, serde_json::Value>>,
+) -> HashMap<String, serde_json::Value> {
+    let mut extern_payload = extern_payload.unwrap_or_default();
+    let sort_by = extern_payload
+        .get("sortBy")
+        .and_then(json_value_to_u32)
+        .unwrap_or(1);
+
+    extern_payload.insert(
+        "sortBy".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(sort_by)),
+    );
+
+    extern_payload
+}
+
+fn search_order_from_extern(extern_payload: &HashMap<String, serde_json::Value>) -> String {
+    let order = extern_payload
+        .get("sort")
+        .and_then(json_value_to_string)
+        .unwrap_or_default();
+
+    if !order.trim().is_empty() {
+        return order.trim().to_string();
+    }
+
+    match extern_payload.get("sortBy").and_then(json_value_to_u32) {
+        Some(2) => "mv".to_string(),
+        Some(3) => "mp".to_string(),
+        Some(4) => "tf".to_string(),
+        _ => "mr".to_string(),
+    }
+}
+
+fn json_value_to_u32(value: &serde_json::Value) -> Option<u32> {
+    match value {
+        serde_json::Value::Number(number) => {
+            number.as_u64().and_then(|value| u32::try_from(value).ok())
+        }
+        serde_json::Value::String(value) => value.trim().parse::<u32>().ok(),
+        _ => None,
+    }
+}
+
+fn json_value_to_string(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(value) => Some(value.to_string()),
+        serde_json::Value::Number(value) => Some(value.to_string()),
+        serde_json::Value::Bool(value) => Some(value.to_string()),
+        _ => None,
+    }
+}
+
+fn direct_search_comic_id(keyword: &str) -> Option<String> {
+    let keyword = keyword.trim();
+
+    if keyword.is_empty() {
+        return None;
+    }
+
+    let lowercase = keyword.to_ascii_lowercase();
+    let comic_id = if lowercase.starts_with("jm") {
+        keyword.get(2..).unwrap_or_default().trim()
+    } else {
+        keyword
+    };
+
+    if comic_id
+        .parse::<u32>()
+        .ok()
+        .filter(|value| *value >= 100)
+        .is_some()
+    {
+        Some(comic_id.to_string())
+    } else {
+        None
+    }
+}
+
+fn build_jm_cover_url(img_host: Option<&str>, comic_id: &str, image: &str) -> String {
+    let image = image.trim();
+
+    if image.starts_with("http://") || image.starts_with("https://") {
+        return image.to_string();
+    }
+
+    let Some(img_host) = img_host else {
+        return image.to_string();
+    };
+    let img_host = img_host.trim().trim_end_matches('/');
+
+    if img_host.is_empty() {
+        return image.to_string();
+    }
+
+    if image.starts_with('/') {
+        return format!("{img_host}{image}");
+    }
+
+    if image.starts_with("media/") {
+        return format!("{img_host}/{image}");
+    }
+
+    if comic_id.trim().is_empty() {
+        image.to_string()
+    } else {
+        format!("{img_host}/media/albums/{comic_id}_3x4.jpg")
+    }
+}
+
+fn search_payload_from_detail(payload: ComicDetailPayload) -> SearchComicPayload {
+    SearchComicPayload {
+        id: payload.id,
+        author: payload.author.join("/"),
+        description: Some(payload.description),
+        name: payload.name,
+        image: String::new(),
+        category: None,
+        category_sub: None,
+        update_at: None,
+        likes: payload.likes,
+        total_views: payload.total_views,
+        tags: payload.tags,
+        works: payload.works,
+        actors: payload.actors,
+        liked: payload.liked,
+        is_favorite: payload.is_favorite,
+    }
+}
+
+fn non_empty_string(value: Option<&str>) -> Option<String> {
+    let value = value?.trim();
+
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
+}
+
+fn map_search_comic_item(item: SearchComicPayload, img_host: Option<&str>) -> PluginComicListItem {
+    let id = item.id;
+    let cover_url = build_jm_cover_url(img_host, &id, &item.image);
+    let updated_at = item
+        .update_at
+        .map(|value| value.to_string())
+        .unwrap_or_default();
+    let author = item.author;
+    let description = item.description.unwrap_or_default();
+    let category = item.category;
+    let category_sub = item.category_sub;
+    let category_title = category
+        .as_ref()
+        .and_then(|category| non_empty_string(category.title.as_deref()));
+    let category_sub_title = category_sub
+        .as_ref()
+        .and_then(|category| non_empty_string(category.title.as_deref()));
+    let category_id = category.map(|category| category.id);
+    let category_sub_id = category_sub.map(|category| category.id);
+    let name = item.name;
+    let tags = item.tags;
+    let works = item.works;
+    let actors = item.actors;
+    let image = item.image;
+
+    PluginComicListItem {
+        source: JM_PLUGIN_ID.to_string(),
+        id: id.clone(),
+        title: name.clone(),
+        subtitle: String::new(),
+        finished: false,
+        likes_count: item.likes,
+        views_count: item.total_views,
+        updated_at: updated_at.clone(),
+        cover: PluginImageItem {
+            id: id.clone(),
+            url: cover_url,
+            name: String::new(),
+            path: format!("{id}.jpg"),
+            r#extern: hashmap_from_pairs([(
+                "path",
+                serde_json::Value::String(format!("{id}.jpg")),
+            )]),
+        },
+        metadata: search_metadata(
+            author.as_str(),
+            category_title.as_deref(),
+            category_sub_title.as_deref(),
+            &tags,
+            &works,
+            &actors,
+        ),
+        raw: search_raw(
+            &id,
+            &name,
+            &author,
+            &description,
+            &updated_at,
+            &image,
+            category_id,
+            category_title,
+            category_sub_id,
+            category_sub_title,
+            item.liked,
+            item.is_favorite,
+            item.likes,
+            item.total_views,
+            &tags,
+            &works,
+            &actors,
+        ),
+        r#extern: HashMap::new(),
+    }
+}
+
+fn search_metadata(
+    author: &str,
+    category_title: Option<&str>,
+    category_sub_title: Option<&str>,
+    tags: &[String],
+    works: &[String],
+    actors: &[String],
+) -> Vec<PluginMetadataListItem> {
+    let mut metadata = Vec::new();
+
+    push_metadata(&mut metadata, "author", "作者", [author.to_string()]);
+    push_metadata(
+        &mut metadata,
+        "categories",
+        "分类",
+        [
+            category_title.unwrap_or_default().to_string(),
+            category_sub_title.unwrap_or_default().to_string(),
+        ],
+    );
+    push_metadata(&mut metadata, "tags", "标签", tags.iter().cloned());
+    push_metadata(&mut metadata, "works", "作品", works.iter().cloned());
+    push_metadata(&mut metadata, "actors", "角色", actors.iter().cloned());
+
+    metadata
+}
+
+fn push_metadata<I>(
+    metadata: &mut Vec<PluginMetadataListItem>,
+    metadata_type: &str,
+    name: &str,
+    values: I,
+) where
+    I: IntoIterator<Item = String>,
+{
+    let value = values
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+
+    if value.is_empty() {
+        return;
+    }
+
+    metadata.push(PluginMetadataListItem {
+        metadata_type: metadata_type.to_string(),
+        name: name.to_string(),
+        value,
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn search_raw(
+    id: &str,
+    name: &str,
+    author: &str,
+    description: &str,
+    updated_at: &str,
+    image: &str,
+    category_id: Option<String>,
+    category_title: Option<String>,
+    category_sub_id: Option<String>,
+    category_sub_title: Option<String>,
+    liked: bool,
+    is_favorite: bool,
+    likes: u32,
+    total_views: u32,
+    tags: &[String],
+    works: &[String],
+    actors: &[String],
+) -> HashMap<String, serde_json::Value> {
+    hashmap_from_pairs([
+        ("id", serde_json::Value::String(id.to_string())),
+        ("author", serde_json::Value::String(author.to_string())),
+        (
+            "description",
+            serde_json::Value::String(description.to_string()),
+        ),
+        ("name", serde_json::Value::String(name.to_string())),
+        ("image", serde_json::Value::String(image.to_string())),
+        (
+            "category",
+            serde_json::json!({
+                "id": category_id.unwrap_or_default(),
+                "title": category_title.unwrap_or_default()
+            }),
+        ),
+        (
+            "category_sub",
+            serde_json::json!({
+                "id": category_sub_id,
+                "title": category_sub_title
+            }),
+        ),
+        ("liked", serde_json::Value::Bool(liked)),
+        ("is_favorite", serde_json::Value::Bool(is_favorite)),
+        (
+            "update_at",
+            serde_json::Value::Number(serde_json::Number::from(
+                updated_at.parse::<i64>().unwrap_or_default(),
+            )),
+        ),
+        (
+            "likes",
+            serde_json::Value::Number(serde_json::Number::from(likes)),
+        ),
+        (
+            "totalViews",
+            serde_json::Value::Number(serde_json::Number::from(total_views)),
+        ),
+        ("tags", serde_json::json!(tags)),
+        ("works", serde_json::json!(works)),
+        ("actors", serde_json::json!(actors)),
+    ])
+}
+
+fn hashmap_from_pairs<const N: usize>(
+    pairs: [(&str, serde_json::Value); N],
+) -> HashMap<String, serde_json::Value> {
+    pairs
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), value))
+        .collect()
 }
 
 fn map_comic_detail(payload: ComicDetailPayload, img_host: Option<&str>) -> ComicDetail {

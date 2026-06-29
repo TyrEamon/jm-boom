@@ -1,71 +1,122 @@
 import { invoke } from '@tauri-apps/api/core'
 
-export type SearchAlbum = {
+export type StringMap = Record<string, unknown>
+
+export type ImageItem = {
+  id: string
+  url: string
+  name: string
+  path: string
+  extern: StringMap
+}
+
+export type MetadataListItem = {
+  type: string
+  name: string
+  value: string[]
+}
+
+export type PagingInfo = {
+  page: number
+  pages: number
+  total: number
+  hasReachedMax: boolean
+}
+
+export type ComicListItem = {
+  source: string
   id: string
   title: string
-  author: string
-  description: string
-  image: string
-  tags: string[]
-  href: string
-  updated_at?: number | null
-  isRedirect?: boolean
+  subtitle: string
+  finished: boolean
+  likesCount: number
+  viewsCount: number
+  updatedAt: string
+  cover: ImageItem
+  metadata: MetadataListItem[]
+  raw: StringMap
+  extern: StringMap
 }
 
-export type SearchAlbumsParams = {
-  query: string
+export type SearchResultContract = {
+  source: string
+  extern: StringMap
+  scheme: {
+    version: '1.0.0'
+    type: 'searchResult'
+    source: string
+    list: string
+  }
+  data: {
+    paging: PagingInfo
+    items: ComicListItem[]
+  }
+  paging: PagingInfo
+  items: ComicListItem[]
+}
+
+export type SearchComicParams = {
+  keyword: string
   page?: number
+  extern?: StringMap | null
   endpoint?: string | null
 }
 
-export type SearchAlbumsResult = {
-  query: string
-  page: number
-  total: number
-  endpoint?: string | null
-  redirectAid?: string | null
-  items: SearchAlbum[]
-}
-
-export async function searchAlbums({
-  query,
+export async function searchComic({
+  keyword,
   page = 1,
+  extern = null,
   endpoint = null
-}: SearchAlbumsParams): Promise<SearchAlbumsResult> {
-  const normalizedQuery = query.trim()
+}: SearchComicParams): Promise<SearchResultContract> {
+  const normalizedKeyword = keyword.trim()
 
-  if (normalizedQuery.length === 0) {
-    return {
-      query: normalizedQuery,
-      page,
-      total: 0,
-      endpoint: null,
-      redirectAid: null,
-      items: []
-    }
+  if (normalizedKeyword.length === 0) {
+    return emptySearchResult(page, extern)
   }
 
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('Search needs the Tauri desktop runtime. Start the app with the Tauri command.')
-  }
+  ensureTauriRuntime()
 
-  const result = await withTimeout(
-    invoke<Partial<SearchAlbumsResult>>('search_comics', {
-      query: normalizedQuery,
+  return withTimeout(
+    invoke<SearchResultContract>('search_comics', {
+      keyword: normalizedKeyword,
       page,
+      externPayload: extern,
       endpoint
     }),
     15000
   )
-  console.debug('search_comics raw result', result)
+}
+
+function emptySearchResult(page: number, extern: StringMap | null): SearchResultContract {
+  const paging = {
+    page,
+    pages: page,
+    total: 0,
+    hasReachedMax: true
+  }
+  const items: ComicListItem[] = []
 
   return {
-    query: result.query ?? normalizedQuery,
-    page: result.page ?? page,
-    total: result.total ?? 0,
-    endpoint: result.endpoint ?? null,
-    redirectAid: result.redirectAid ?? null,
-    items: result.items ?? []
+    source: 'bf99008d-010b-4f17-ac7c-61a9b57dc3d9',
+    extern: extern ?? { sortBy: 1 },
+    scheme: {
+      version: '1.0.0',
+      type: 'searchResult',
+      source: 'bf99008d-010b-4f17-ac7c-61a9b57dc3d9',
+      list: 'comicGrid'
+    },
+    data: {
+      paging,
+      items
+    },
+    paging,
+    items
+  }
+}
+
+function ensureTauriRuntime() {
+  if (!('__TAURI_INTERNALS__' in window)) {
+    throw new Error('Search needs the Tauri desktop runtime. Start the app with the Tauri command.')
   }
 }
 
