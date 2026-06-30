@@ -3,6 +3,8 @@ use crate::api::{
     build_http_client, current_jwt_token, lossy_string_from_scalar, resolve_api_endpoint,
     resolve_cached_img_host, ApiError, ApiErrorKind, ApiResult,
 };
+use crate::diagnostics;
+use crate::storage::runtime_cache;
 use aes::Aes256;
 use base64::prelude::{Engine as _, BASE64_STANDARD};
 use ecb::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyInit};
@@ -10,12 +12,20 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const JM_API_VERSION: &str = "2.0.20";
 const JM_API_SECRET: &str = "185Hcomic3PAPP7R";
+const READER_MANIFEST_CACHE_KIND: &str = "reader_manifest";
+const READER_MANIFEST_CACHE_TTL: Duration = Duration::from_secs(20 * 60);
 
-static MANIFEST_CACHE: OnceLock<Mutex<HashMap<String, ReaderManifest>>> = OnceLock::new();
+static MANIFEST_CACHE: OnceLock<Mutex<HashMap<String, CachedReaderManifest>>> = OnceLock::new();
+
+#[derive(Debug, Clone)]
+struct CachedReaderManifest {
+    manifest: ReaderManifest,
+    expires_at: u64,
+}
 
 #[derive(Debug, Deserialize)]
 struct ReaderChapterPayload {
@@ -51,12 +61,26 @@ pub(crate) async fn get_or_load_manifest(
         return Ok(manifest);
     }
 
+    if let Some(manifest) =
+        runtime_cache_get::<ReaderManifest>(READER_MANIFEST_CACHE_KIND, &cache_key).await
+    {
+        cache_manifest(cache_key, manifest.clone());
+        return Ok(manifest);
+    }
+
     let client = build_http_client()?;
     let img_host = resolve_cached_img_host(&client, &endpoint).await?;
     let chapter =
         request_reader_chapter(&client, &endpoint, &read_id, &ReaderApiRequest::current()).await?;
     let manifest = build_reader_manifest(&endpoint, &read_id, &img_host, chapter)?;
-    cache_manifest(cache_key, manifest.clone());
+    cache_manifest(cache_key.clone(), manifest.clone());
+    runtime_cache_set(
+        READER_MANIFEST_CACHE_KIND,
+        &cache_key,
+        &manifest,
+        READER_MANIFEST_CACHE_TTL,
+    )
+    .await;
 
     Ok(manifest)
 }
@@ -198,11 +222,17 @@ impl ReaderApiRequest {
 }
 
 fn cached_manifest(cache_key: &str) -> Option<ReaderManifest> {
-    MANIFEST_CACHE
+    let mut cache = MANIFEST_CACHE
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .ok()
-        .and_then(|cache| cache.get(cache_key).cloned())
+        .ok()?;
+    let entry = cache.get(cache_key)?;
+    if entry.expires_at <= current_timestamp_secs() {
+        cache.remove(cache_key);
+        return None;
+    }
+
+    Some(entry.manifest.clone())
 }
 
 fn cache_manifest(cache_key: String, manifest: ReaderManifest) {
@@ -210,7 +240,14 @@ fn cache_manifest(cache_key: String, manifest: ReaderManifest) {
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
     {
-        cache.insert(cache_key, manifest);
+        cache.insert(
+            cache_key,
+            CachedReaderManifest {
+                manifest,
+                expires_at: current_timestamp_secs()
+                    .saturating_add(READER_MANIFEST_CACHE_TTL.as_secs()),
+            },
+        );
     }
 }
 
@@ -225,6 +262,32 @@ pub(crate) fn clear_manifest_cache() {
 
 fn manifest_cache_key(endpoint: &str, read_id: &str) -> String {
     format!("{endpoint}|{read_id}")
+}
+
+async fn runtime_cache_get<T>(cache_kind: &str, cache_key: &str) -> Option<T>
+where
+    T: DeserializeOwned,
+{
+    match runtime_cache::get(cache_kind, cache_key).await {
+        Ok(value) => value,
+        Err(error) => {
+            diagnostics::warn(format!(
+                "Failed to read runtime cache kind={cache_kind} key={cache_key}: {error}"
+            ));
+            None
+        }
+    }
+}
+
+async fn runtime_cache_set<T>(cache_kind: &str, cache_key: &str, value: &T, ttl: Duration)
+where
+    T: serde::Serialize,
+{
+    if let Err(error) = runtime_cache::set(cache_kind, cache_key, value, ttl).await {
+        diagnostics::warn(format!(
+            "Failed to write runtime cache kind={cache_kind} key={cache_key}: {error}"
+        ));
+    }
 }
 
 fn normalize_read_id(read_id: String) -> ApiResult<String> {
@@ -264,6 +327,13 @@ fn current_millis_timestamp() -> String {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis().to_string())
         .unwrap_or_else(|_| "0".to_string())
+}
+
+fn current_timestamp_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or_default()
 }
 
 fn android_user_agent() -> &'static str {

@@ -307,7 +307,7 @@ pub(crate) struct CommentPayload {
     pub(crate) replys: Option<Vec<CommentPayload>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct RemoteSettingPayload {
     #[serde(default, deserialize_with = "string_or_number_or_empty")]
     pub(crate) img_host: String,
@@ -426,7 +426,7 @@ pub struct RemoteSettingResult {
     pub img_host: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ApiEndpointProbe {
     pub endpoint: String,
     pub available: bool,

@@ -1,10 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub(crate) const DEFAULT_READER_CACHE_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
 pub(crate) const MIN_READER_CACHE_LIMIT_BYTES: u64 = 128 * 1024 * 1024;
 pub(crate) const MAX_READER_CACHE_LIMIT_BYTES: u64 = 2048 * 1024 * 1024;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ReaderManifest {
     pub(crate) endpoint: String,
     pub(crate) read_id: String,
@@ -12,7 +12,7 @@ pub(crate) struct ReaderManifest {
     pub(crate) pages: Vec<ReaderPage>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ReaderPage {
     pub(crate) index: u32,
     pub(crate) page_name: String,

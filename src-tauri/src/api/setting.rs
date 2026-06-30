@@ -1,5 +1,13 @@
 use super::*;
 use crate::plugin_codec::decode_setting_payload;
+use crate::storage::runtime_cache;
+use std::time::Duration;
+
+const ENDPOINT_DISCOVERY_CACHE_KIND: &str = "endpoint_discovery";
+const ENDPOINT_DISCOVERY_CACHE_KEY: &str = "endpoint_discovery:v1";
+const IMG_HOST_CACHE_KIND: &str = "img_host";
+const ENDPOINT_DISCOVERY_CACHE_TTL: Duration = Duration::from_secs(30 * 60);
+const IMG_HOST_CACHE_TTL: Duration = Duration::from_secs(30 * 60);
 
 pub async fn get_remote_setting(endpoint: Option<String>) -> ApiResult<RemoteSettingResult> {
     let endpoint = resolve_api_endpoint(endpoint)?;
@@ -11,6 +19,15 @@ pub async fn get_remote_setting(endpoint: Option<String>) -> ApiResult<RemoteSet
 }
 
 pub async fn discover_api_endpoints() -> ApiResult<Vec<ApiEndpointProbe>> {
+    if let Some(probes) = runtime_cache_get::<Vec<ApiEndpointProbe>>(
+        ENDPOINT_DISCOVERY_CACHE_KIND,
+        ENDPOINT_DISCOVERY_CACHE_KEY,
+    )
+    .await
+    {
+        return Ok(probes);
+    }
+
     let client = create_http_client()?;
     let mut candidates = discover_api_endpoint_candidates(&client).await?;
 
@@ -53,6 +70,16 @@ pub async fn discover_api_endpoints() -> ApiResult<Vec<ApiEndpointProbe>> {
         (false, true) => std::cmp::Ordering::Greater,
         (false, false) => left.endpoint.cmp(&right.endpoint),
     });
+
+    if probes.iter().any(|probe| probe.available) {
+        runtime_cache_set(
+            ENDPOINT_DISCOVERY_CACHE_KIND,
+            ENDPOINT_DISCOVERY_CACHE_KEY,
+            &probes,
+            ENDPOINT_DISCOVERY_CACHE_TTL,
+        )
+        .await;
+    }
 
     Ok(probes)
 }
@@ -105,8 +132,22 @@ pub(crate) async fn request_remote_img_host(
         return Ok(img_host);
     }
 
+    if let Some(img_host) =
+        runtime_cache_get::<String>(IMG_HOST_CACHE_KIND, &img_host_cache_key(endpoint)).await
+    {
+        cache_img_host(endpoint, &img_host);
+        return Ok(img_host);
+    }
+
     let setting = request_remote_setting(client, endpoint, auth).await?;
     cache_img_host(endpoint, &setting.img_host);
+    runtime_cache_set(
+        IMG_HOST_CACHE_KIND,
+        &img_host_cache_key(endpoint),
+        &setting.img_host,
+        IMG_HOST_CACHE_TTL,
+    )
+    .await;
 
     Ok(setting.img_host)
 }
@@ -212,11 +253,17 @@ pub(crate) async fn fetch_host_config_from_url(
 }
 
 pub(crate) fn cached_img_host(endpoint: &str) -> Option<String> {
-    IMG_HOST_CACHE
+    let mut cache = IMG_HOST_CACHE
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .ok()
-        .and_then(|cache| cache.get(endpoint).cloned())
+        .ok()?;
+    let entry = cache.get(endpoint)?;
+    if entry.expires_at <= current_timestamp_secs() {
+        cache.remove(endpoint);
+        return None;
+    }
+
+    Some(entry.value.clone())
 }
 
 pub(crate) fn cache_img_host(endpoint: &str, img_host: &str) {
@@ -224,6 +271,49 @@ pub(crate) fn cache_img_host(endpoint: &str, img_host: &str) {
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
     {
-        cache.insert(endpoint.to_string(), img_host.to_string());
+        cache.insert(
+            endpoint.to_string(),
+            ImgHostCacheEntry {
+                value: img_host.to_string(),
+                expires_at: current_timestamp_secs().saturating_add(IMG_HOST_CACHE_TTL.as_secs()),
+            },
+        );
+    }
+}
+
+fn img_host_cache_key(endpoint: &str) -> String {
+    format!("img_host:{endpoint}")
+}
+
+fn current_timestamp_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or_default()
+}
+
+async fn runtime_cache_get<T>(cache_kind: &str, cache_key: &str) -> Option<T>
+where
+    T: serde::de::DeserializeOwned,
+{
+    match runtime_cache::get(cache_kind, cache_key).await {
+        Ok(value) => value,
+        Err(error) => {
+            diagnostics::warn(format!(
+                "Failed to read runtime cache kind={cache_kind} key={cache_key}: {error}"
+            ));
+            None
+        }
+    }
+}
+
+async fn runtime_cache_set<T>(cache_kind: &str, cache_key: &str, value: &T, ttl: Duration)
+where
+    T: serde::Serialize,
+{
+    if let Err(error) = runtime_cache::set(cache_kind, cache_key, value, ttl).await {
+        diagnostics::warn(format!(
+            "Failed to write runtime cache kind={cache_kind} key={cache_key}: {error}"
+        ));
     }
 }
