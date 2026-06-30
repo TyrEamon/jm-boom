@@ -141,10 +141,10 @@
 
 ### Phase 3：拆分设置页
 
-- [ ] 将 `src/routes/_app/settings.tsx` 拆到 `src/features/settings/`，路由文件仅保留 `createFileRoute` 和页面入口。
-- [ ] 按 section 拆分：版本更新、外观、API endpoint、代理、缓存、隐私模式、调试诊断。
-- [ ] 抽 `SettingRow`、`SectionTitle`、endpoint 选择/测速展示等稳定组件或 hooks。
-- [ ] 保持 UI 和交互行为不变。
+- [x] 将 `src/routes/_app/settings.tsx` 拆到 `src/features/settings/`，路由文件仅保留 `createFileRoute` 和页面入口。
+- [x] 按 section 拆分：版本更新、外观、API endpoint、代理、缓存、隐私模式、调试诊断。
+- [x] 抽 `SettingRow`、`SectionTitle`、endpoint 选择/测速展示等稳定组件或 hooks。
+- [x] 保持 UI 和交互行为不变。
 - 建议 commit msg：`refactor(settings): split settings page into feature modules`。
 
 ### Phase 4：拆分 Rust API 与收窄 serde 兼容
