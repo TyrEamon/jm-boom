@@ -47,6 +47,7 @@ async fn get_home_feed(endpoint: Option<String>) -> Result<HomeFeedResult, Strin
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 async fn get_home_section_list(
     mode: String,
     page: Option<u32>,

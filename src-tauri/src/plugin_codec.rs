@@ -68,7 +68,7 @@ fn decrypt_data_field(data: &str, ts: &str) -> Option<serde_json::Value> {
 
         return serde_json::from_str::<serde_json::Value>(text.trim())
             .ok()
-            .or_else(|| Some(serde_json::Value::String(text)));
+            .or(Some(serde_json::Value::String(text)));
     }
 
     None

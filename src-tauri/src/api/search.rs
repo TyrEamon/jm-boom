@@ -64,6 +64,7 @@ pub async fn search_comics(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn request_search(
     client: &reqwest::Client,
     endpoint: &str,
