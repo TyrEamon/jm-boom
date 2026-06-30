@@ -29,6 +29,7 @@ export function useReaderChapterInfo({
     enabled: albumId.length > 0,
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
+    retry: false,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

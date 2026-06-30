@@ -11,7 +11,6 @@ use super::types::{
     EnqueueDownloadRequest,
 };
 use crate::api::{resolve_api_endpoint, ApiError, ApiErrorKind, ApiResult};
-use crate::diagnostics;
 use crate::reader;
 use std::collections::VecDeque;
 use std::fs;
@@ -22,6 +21,7 @@ use tauri::async_runtime::{self, JoinHandle};
 use tauri::AppHandle;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio::task::JoinSet;
+use tracing::Instrument;
 
 static DOWNLOAD_MANAGER: OnceLock<Arc<DownloadManager>> = OnceLock::new();
 const DOWNLOAD_PROGRESS_PERSIST_INTERVAL: Duration = Duration::from_millis(1000);
@@ -50,6 +50,7 @@ enum PersistMode {
 }
 
 struct DownloadPageResult {
+    page_index: u32,
     target_path: PathBuf,
     is_cached: bool,
 }
@@ -304,7 +305,7 @@ impl DownloadManager {
             let next_task = match self.mark_next_task_running().await {
                 Ok(task) => task,
                 Err(error) => {
-                    diagnostics::warn(format!("Failed to read download queue: {error}"));
+                    tracing::warn!(error = %error, "failed to read download queue");
                     None
                 }
             };
@@ -316,8 +317,19 @@ impl DownloadManager {
                 return;
             };
 
-            let result = self.run_task(task.clone()).await;
+            let span = tracing::info_span!(
+                "download_task",
+                task_id = %task.task_id,
+                album_id = %task.album_id,
+                comic_title = %task.comic_title
+            );
+            let result = self.run_task(task.clone()).instrument(span).await;
             if let Err(error) = result {
+                tracing::warn!(
+                    task_id = %task.task_id,
+                    error = %error,
+                    "download task failed"
+                );
                 let _ = self
                     .mark_task_failed(&task.task_id, error.to_string())
                     .await;
@@ -358,6 +370,7 @@ impl DownloadManager {
     }
 
     async fn run_task(&self, task: DownloadTask) -> ApiResult<()> {
+        tracing::info!(status = "running", "download task started");
         let task_started_at = std::time::Instant::now();
         let mut completed_pages: u32 = 0;
         let mut total_pages: u32 = 0;
@@ -372,6 +385,13 @@ impl DownloadManager {
             )
             .await?;
             total_pages = total_pages.saturating_add(manifest.page_count());
+            tracing::debug!(
+                chapter_id = %chapter.chapter_id,
+                chapter_title = %chapter.title,
+                chapter_pages = manifest.page_count(),
+                total_pages,
+                "download chapter manifest loaded"
+            );
             manifests.push_back((chapter.clone(), manifest));
             self.update_task(&task.task_id, PersistMode::Force, |task| {
                 task.total_pages = total_pages;
@@ -382,6 +402,11 @@ impl DownloadManager {
 
         while let Some((chapter, manifest)) = manifests.pop_front() {
             self.ensure_task_can_continue(&task.task_id)?;
+            tracing::info!(
+                chapter_id = %chapter.chapter_id,
+                chapter_title = %chapter.title,
+                "download chapter started"
+            );
             self.update_task(&task.task_id, PersistMode::Force, |task| {
                 task.current_chapter_title = chapter.title.clone();
             })
@@ -400,6 +425,12 @@ impl DownloadManager {
             .await?;
         }
 
+        tracing::info!(
+            status = "completed",
+            total_pages,
+            elapsed_ms = task_started_at.elapsed().as_secs_f64() * 1000.0,
+            "download task completed"
+        );
         self.update_task(&task.task_id, PersistMode::Force, |task| {
             let now = current_timestamp();
             task.status = DownloadTaskStatus::Completed;
@@ -437,20 +468,33 @@ impl DownloadManager {
                 let target_path = chapter_dir.join(format!("{:04}.{extension}", index + 1));
                 let manifest_for_page = manifest.clone();
                 let target_path_for_page = target_path.clone();
+                let task_id_for_page = task.task_id.clone();
+                let chapter_id_for_page = chapter.chapter_id.clone();
+                let chapter_title_for_page = chapter.title.clone();
 
-                pages.spawn(async move {
-                    let (_, _, is_cached) = reader::materialize_reader_page_to_path(
-                        &manifest_for_page,
-                        index,
-                        target_path_for_page.clone(),
-                    )
-                    .await?;
+                pages.spawn(
+                    async move {
+                        let (_, _, is_cached) = reader::materialize_reader_page_to_path(
+                            &manifest_for_page,
+                            index,
+                            target_path_for_page.clone(),
+                        )
+                        .await?;
 
-                    Ok::<_, ApiError>(DownloadPageResult {
-                        target_path: target_path_for_page,
-                        is_cached,
-                    })
-                });
+                        Ok::<_, ApiError>(DownloadPageResult {
+                            page_index: index,
+                            target_path: target_path_for_page,
+                            is_cached,
+                        })
+                    }
+                    .instrument(tracing::debug_span!(
+                        "download_page",
+                        task_id = %task_id_for_page,
+                        chapter_id = %chapter_id_for_page,
+                        chapter_title = %chapter_title_for_page,
+                        page = index + 1
+                    )),
+                );
             }
 
             let Some(result) = pages.join_next().await else {
@@ -477,6 +521,14 @@ impl DownloadManager {
                 *downloaded_bytes = downloaded_bytes
                     .saturating_add(file_size_bytes(&page_result.target_path).unwrap_or(0));
             }
+            tracing::debug!(
+                chapter_id = %chapter.chapter_id,
+                page = page_result.page_index + 1,
+                total_pages,
+                cached = page_result.is_cached,
+                target_path = %page_result.target_path.to_string_lossy(),
+                "download page completed"
+            );
             let eta_seconds =
                 estimate_eta(task_started_at.elapsed(), *completed_pages, total_pages);
             let speed_bytes_per_second =

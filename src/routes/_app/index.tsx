@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getHomeFeed, type HomeFeedSection, type HomeSectionListMode } from '@/lib/api/home'
 import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
 import { queryKeys } from '@/lib/query-keys'
+import { defaultRankingCategory } from '@/lib/ranking-filters'
 import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settings-store'
 
@@ -99,12 +100,16 @@ function SectionHeader({ section }: { section: HomeFeedSection }) {
             to="/list"
             search={{
               mode,
+              page: 1,
               sectionId: section.id,
               title: section.title,
               slug: section.slug,
               type: section.type,
               filterValue: section.filterValue,
-              rankTag
+              rankTag,
+              category: mode === 'ranking' ? defaultRankingCategory(rankTag) : 'all',
+              week: String(currentChinaWeekday()),
+              order: 'new'
             }}
           >
             查看更多
@@ -114,6 +119,14 @@ function SectionHeader({ section }: { section: HomeFeedSection }) {
       ) : null}
     </div>
   )
+}
+
+function currentChinaWeekday() {
+  const date = new Date()
+  const chinaDate = new Date(date.getTime() + (date.getTimezoneOffset() + 480) * 60 * 1000)
+  const day = chinaDate.getDay()
+
+  return day === 0 ? 7 : day
 }
 
 function HomeFeedDirectory({ sections }: { sections: HomeFeedSection[] }) {

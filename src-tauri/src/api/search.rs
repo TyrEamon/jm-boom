@@ -22,9 +22,7 @@ pub async fn search_comics(
     let img_host = match request_remote_img_host(&client, &endpoint, &setting_auth).await {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for search covers: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for search covers");
             None
         }
     };
@@ -43,9 +41,11 @@ pub async fn search_comics(
                     ));
                 }
                 Err(error) => {
-                    diagnostics::warn(format!(
-                        "Failed direct search detail fallback for {comic_id}: {error}"
-                    ));
+                    tracing::warn!(
+                        comic_id = %comic_id,
+                        error = %error,
+                        "failed direct search detail fallback"
+                    );
                 }
             }
         }

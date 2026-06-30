@@ -341,10 +341,10 @@ pub fn run() {
             let handle = app.handle().clone();
             let _ = diagnostics::init(&handle);
             if let Err(error) = tauri::async_runtime::block_on(storage::init(&handle)) {
-                diagnostics::error(format!("Failed to initialize storage: {error}"));
+                tracing::error!(error = %error, "failed to initialize storage");
                 return Err(std::io::Error::other(error).into());
             }
-            diagnostics::info("JM Boom started");
+            tracing::info!("JM Boom started");
 
             Ok(())
         })

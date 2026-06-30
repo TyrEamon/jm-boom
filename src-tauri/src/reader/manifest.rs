@@ -3,7 +3,6 @@ use crate::api::{
     build_http_client, current_jwt_token, lossy_string_from_scalar, resolve_api_endpoint,
     resolve_cached_img_host, ApiError, ApiErrorKind, ApiResult,
 };
-use crate::diagnostics;
 use crate::storage::runtime_cache;
 use aes::Aes256;
 use base64::prelude::{Engine as _, BASE64_STANDARD};
@@ -271,9 +270,12 @@ where
     match runtime_cache::get(cache_kind, cache_key).await {
         Ok(value) => value,
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to read runtime cache kind={cache_kind} key={cache_key}: {error}"
-            ));
+            tracing::warn!(
+                cache_kind = %cache_kind,
+                cache_key = %cache_key,
+                error = %error,
+                "failed to read runtime cache"
+            );
             None
         }
     }
@@ -284,9 +286,12 @@ where
     T: serde::Serialize,
 {
     if let Err(error) = runtime_cache::set(cache_kind, cache_key, value, ttl).await {
-        diagnostics::warn(format!(
-            "Failed to write runtime cache kind={cache_kind} key={cache_key}: {error}"
-        ));
+        tracing::warn!(
+            cache_kind = %cache_kind,
+            cache_key = %cache_key,
+            error = %error,
+            "failed to write runtime cache"
+        );
     }
 }
 

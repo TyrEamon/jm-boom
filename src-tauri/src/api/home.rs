@@ -8,9 +8,7 @@ pub async fn get_home_feed(endpoint: Option<String>) -> ApiResult<HomeFeedResult
     let img_host = match request_remote_img_host(&client, &endpoint, &setting_auth).await {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for home covers: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for home covers");
             None
         }
     };
@@ -68,9 +66,10 @@ pub async fn get_home_section_list(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for home section list covers: {error}"
-            ));
+            tracing::warn!(
+                error = %error,
+                "failed to load remote setting for home section list covers"
+            );
             None
         }
     };
@@ -137,9 +136,7 @@ pub async fn get_week_items(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for weekly covers: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for weekly covers");
             None
         }
     };

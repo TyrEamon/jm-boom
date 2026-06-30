@@ -4,19 +4,13 @@ import { ListFilterIcon, SearchIcon } from 'lucide-react'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
+import { ListPagination } from '@/components/list-pagination'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput
 } from '@/components/ui/input-group'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious
-} from '@/components/ui/pagination'
 import {
   Select,
   SelectContent,
@@ -28,6 +22,7 @@ import {
 import { searchComic, type ComicListItem } from '@/lib/api/search'
 import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
 import { queryKeys } from '@/lib/query-keys'
+import { parsePositivePage } from '@/lib/route-search'
 import { useSettingsStore } from '@/stores/settings-store'
 
 type SearchPageSearch = {
@@ -41,7 +36,7 @@ type SearchSortBy = 1 | 2 | 3 | 4
 export const Route = createFileRoute('/_app/search')({
   validateSearch: (search: Record<string, unknown>): SearchPageSearch => ({
     keyword: typeof search.keyword === 'string' ? search.keyword : '',
-    page: parsePage(search.page),
+    page: parsePositivePage(search.page),
     sortBy: parseSortBy(search.sortBy)
   }),
   component: SearchPage
@@ -98,6 +93,7 @@ function SearchPage() {
 
   function updateSortBy(value: string) {
     void navigate({
+      replace: true,
       search: {
         keyword: search.keyword,
         page: 1,
@@ -108,13 +104,13 @@ function SearchPage() {
 
   function updatePage(page: number) {
     void navigate({
+      replace: true,
       search: {
         keyword: search.keyword,
         page,
         sortBy: search.sortBy
       }
     })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
@@ -223,64 +219,13 @@ function SearchContent({
   return (
     <>
       <ComicGrid items={items} />
-      <SearchPagination
+      <ListPagination
         page={page}
         hasMore={hasMore}
         disabled={disabled}
         onPageChange={onPageChange}
       />
     </>
-  )
-}
-
-function SearchPagination({
-  page,
-  hasMore,
-  disabled,
-  onPageChange
-}: {
-  page: number
-  hasMore: boolean
-  disabled: boolean
-  onPageChange: (page: number) => void
-}) {
-  function changePage(nextPage: number) {
-    if (disabled || nextPage < 1 || nextPage === page) {
-      return
-    }
-
-    onPageChange(nextPage)
-  }
-
-  return (
-    <Pagination className="py-3">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            text="上一页"
-            aria-disabled={page <= 1 || disabled}
-            className={page <= 1 || disabled ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page - 1)
-            }}
-          />
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            text="下一页"
-            aria-disabled={disabled || !hasMore}
-            className={disabled || !hasMore ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page + 1)
-            }}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
   )
 }
 
@@ -304,12 +249,6 @@ function searchItemAuthor(item: ComicListItem) {
   const author = authorMeta?.value.join(' / ').trim()
 
   return author || String(item.raw.author ?? '')
-}
-
-function parsePage(value: unknown) {
-  const page = Number.parseInt(String(value ?? ''), 10)
-
-  return Number.isFinite(page) && page > 0 ? page : 1
 }
 
 function parseSortBy(value: unknown): SearchSortBy {

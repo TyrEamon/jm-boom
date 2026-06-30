@@ -7,7 +7,6 @@ use super::types::{
     MAX_READER_CACHE_LIMIT_BYTES, MIN_READER_CACHE_LIMIT_BYTES,
 };
 use crate::api::{ApiError, ApiErrorKind, ApiResult};
-use crate::diagnostics;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -127,10 +126,11 @@ pub(crate) async fn cleanup_reader_cache(cache_limit_bytes: u64) -> ApiResult<()
                 delete_reader_cache_entry_by_path(&entry.path).await?;
             }
             Err(error) => {
-                diagnostics::warn(format!(
-                    "Failed to remove reader cache file {:?}: {error}",
-                    entry.path
-                ));
+                tracing::warn!(
+                    path = %entry.path,
+                    error = %error,
+                    "failed to remove reader cache file"
+                );
             }
         }
     }
@@ -148,9 +148,11 @@ pub(crate) fn schedule_reader_cache_cleanup(cache_limit_bytes: u64) {
 
     async_runtime::spawn(async move {
         if let Err(error) = cleanup_reader_cache(cache_limit_bytes).await {
-            diagnostics::warn(format!(
-                "Failed to prune reader cache in background: {error}"
-            ));
+            tracing::warn!(
+                cache_limit_bytes,
+                error = %error,
+                "failed to prune reader cache in background"
+            );
         }
 
         READER_CACHE_CLEANUP_RUNNING.store(false, Ordering::Release);

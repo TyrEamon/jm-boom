@@ -12,14 +12,8 @@ export const queryKeys = {
   favorites: (endpoint: QueryEndpoint, folderId: string, page: number) =>
     ['jm-favorites', endpoint, folderId, page] as const,
   homeFeed: (endpoint: QueryEndpoint) => ['jm-home-feed', endpoint] as const,
-  homeSectionList: (
-    endpoint: QueryEndpoint,
-    search: unknown,
-    page: number,
-    category: string,
-    week: string,
-    order: string
-  ) => ['jm-home-section-list', endpoint, search, page, category, week, order] as const,
+  homeSectionList: (endpoint: QueryEndpoint, search: unknown) =>
+    ['jm-home-section-list', endpoint, search] as const,
   ranking: (endpoint: QueryEndpoint, page: number, category: string, order: string) =>
     ['jm-ranking', endpoint, page, category, order] as const,
   readerCacheStats: (cacheLimitBytes: number) => ['reader-cache-stats', cacheLimitBytes] as const,

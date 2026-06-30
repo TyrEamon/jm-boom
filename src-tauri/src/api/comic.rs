@@ -23,9 +23,7 @@ pub async fn get_comic_detail(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for detail images: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for detail images");
             None
         }
     };
@@ -98,9 +96,7 @@ pub async fn get_favorite_comics(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for favorite covers: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for favorite covers");
             None
         }
     };
@@ -162,9 +158,7 @@ pub async fn get_comic_comments(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for comment avatars: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for comment avatars");
             None
         }
     };

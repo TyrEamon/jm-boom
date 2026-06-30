@@ -1,16 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BarChart3Icon, ListFilterIcon } from 'lucide-react'
-import { useState } from 'react'
 
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious
-} from '@/components/ui/pagination'
+import { ListPagination } from '@/components/list-pagination'
 import {
   Select,
   SelectContent,
@@ -28,28 +21,39 @@ import {
   rankingCategoryOptions,
   RANKING_ORDER_OPTIONS
 } from '@/lib/ranking-filters'
+import { parsePositivePage, parseStringSearch } from '@/lib/route-search'
 import { useSettingsStore } from '@/stores/settings-store'
 
+type RankingSearch = {
+  page: number
+  category: string
+  order: string
+}
+
 export const Route = createFileRoute('/_app/ranking')({
+  validateSearch: (search: Record<string, unknown>): RankingSearch => ({
+    page: parsePositivePage(search.page),
+    category: parseRankingCategory(search.category),
+    order: parseRankingOrder(search.order)
+  }),
   component: RankingPage
 })
 
 function RankingPage() {
   const endpoint = useSettingsStore(state => state.api)
-  const [page, setPage] = useState(1)
-  const [category, setCategory] = useState(defaultRankingCategory())
-  const [order, setOrder] = useState('new')
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = Route.useSearch()
   const categories = rankingCategoryOptions()
 
   const query = useQuery({
-    queryKey: queryKeys.ranking(endpoint, page, category, order),
+    queryKey: queryKeys.ranking(endpoint, search.page, search.category, search.order),
     queryFn: () =>
       getHomeSectionList({
         mode: 'ranking',
-        page,
+        page: search.page,
         sectionTitle: '排行榜',
-        category: rankingCategoryApiValue(category),
-        order,
+        category: rankingCategoryApiValue(search.category),
+        order: search.order,
         endpoint
       }),
     staleTime: LIST_QUERY_STALE_TIME,
@@ -60,13 +64,35 @@ function RankingPage() {
   const items = query.data?.items ?? []
 
   function updateCategory(value: string) {
-    setCategory(value)
-    setPage(1)
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        category: parseRankingCategory(value)
+      }
+    })
   }
 
   function updateOrder(value: string) {
-    setOrder(value)
-    setPage(1)
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        order: parseRankingOrder(value)
+      }
+    })
+  }
+
+  function updatePage(page: number) {
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page
+      }
+    })
   }
 
   return (
@@ -80,7 +106,7 @@ function RankingPage() {
         />
 
         <div className="mb-4 flex items-center justify-end gap-3">
-          <Select value={order} onValueChange={updateOrder}>
+          <Select value={search.order} onValueChange={updateOrder}>
             <SelectTrigger>
               <ListFilterIcon className="size-4 text-muted-foreground" />
               <SelectValue placeholder="选择排序" />
@@ -96,7 +122,7 @@ function RankingPage() {
             </SelectContent>
           </Select>
 
-          <Select value={category} onValueChange={updateCategory}>
+          <Select value={search.category} onValueChange={updateCategory}>
             <SelectTrigger>
               <BarChart3Icon className="size-4 text-muted-foreground" />
               <SelectValue placeholder="选择分类" />
@@ -126,11 +152,11 @@ function RankingPage() {
         ) : (
           <>
             <ComicGrid items={items} />
-            <RankingPagination
-              page={page}
+            <ListPagination
+              page={search.page}
               hasMore={query.data?.hasMore ?? false}
               disabled={query.isFetching}
-              onPageChange={setPage}
+              onPageChange={updatePage}
             />
           </>
         )}
@@ -139,54 +165,16 @@ function RankingPage() {
   )
 }
 
-function RankingPagination({
-  page,
-  hasMore,
-  disabled,
-  onPageChange
-}: {
-  page: number
-  hasMore: boolean
-  disabled: boolean
-  onPageChange: (page: number) => void
-}) {
-  function changePage(nextPage: number) {
-    if (disabled || nextPage < 1 || nextPage === page) {
-      return
-    }
+function parseRankingCategory(value: unknown) {
+  const category = parseStringSearch(value, defaultRankingCategory())
 
-    onPageChange(nextPage)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  return rankingCategoryOptions().some(option => option.value === category)
+    ? category
+    : defaultRankingCategory()
+}
 
-  return (
-    <Pagination className="py-3">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            text="上一页"
-            aria-disabled={page <= 1 || disabled}
-            className={page <= 1 || disabled ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page - 1)
-            }}
-          />
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            text="下一页"
-            aria-disabled={disabled || !hasMore}
-            className={disabled || !hasMore ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page + 1)
-            }}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  )
+function parseRankingOrder(value: unknown) {
+  const order = parseStringSearch(value, 'new')
+
+  return RANKING_ORDER_OPTIONS.some(option => option.value === order) ? order : 'new'
 }

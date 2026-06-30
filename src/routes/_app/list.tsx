@@ -1,16 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
 
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious
-} from '@/components/ui/pagination'
+import { ListPagination } from '@/components/list-pagination'
 import {
   Select,
   SelectContent,
@@ -30,28 +23,42 @@ import {
   RANKING_ORDER_OPTIONS,
   type FilterOption
 } from '@/lib/ranking-filters'
+import { parsePositivePage, parseStringSearch } from '@/lib/route-search'
 import { useSettingsStore } from '@/stores/settings-store'
 
 type HomeSectionListSearch = {
   mode: HomeSectionListMode
+  page: number
   sectionId: string
   title: string
   slug: string
   type: string
   filterValue: string
   rankTag: string
+  category: string
+  week: string
+  order: string
 }
 
 export const Route = createFileRoute('/_app/list')({
-  validateSearch: (search: Record<string, unknown>): HomeSectionListSearch => ({
-    mode: isHomeSectionListMode(search.mode) ? search.mode : 'promote',
-    sectionId: typeof search.sectionId === 'string' ? search.sectionId : '',
-    title: typeof search.title === 'string' ? search.title : '',
-    slug: typeof search.slug === 'string' ? search.slug : '',
-    type: typeof search.type === 'string' ? search.type : '',
-    filterValue: typeof search.filterValue === 'string' ? search.filterValue : '',
-    rankTag: typeof search.rankTag === 'string' ? search.rankTag : ''
-  }),
+  validateSearch: (search: Record<string, unknown>): HomeSectionListSearch => {
+    const mode = isHomeSectionListMode(search.mode) ? search.mode : 'promote'
+    const rankTag = parseStringSearch(search.rankTag)
+
+    return {
+      mode,
+      page: parsePositivePage(search.page),
+      sectionId: parseStringSearch(search.sectionId),
+      title: parseStringSearch(search.title),
+      slug: parseStringSearch(search.slug),
+      type: parseStringSearch(search.type),
+      filterValue: parseStringSearch(search.filterValue),
+      rankTag,
+      category: parseListCategory(mode, rankTag, search.category),
+      week: parseListWeek(search.week),
+      order: parseListOrder(search.order)
+    }
+  },
   component: HomeSectionListPage
 })
 
@@ -74,25 +81,15 @@ const WEEK_CATEGORY_OPTIONS: FilterOption[] = [
 
 function HomeSectionListPage() {
   const endpoint = useSettingsStore(state => state.api)
+  const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
-  const [page, setPage] = useState(1)
-  const [category, setCategory] = useState(() => defaultCategoryForSearch(search))
-  const [week, setWeek] = useState(String(currentChinaWeekday()))
-  const [order, setOrder] = useState('new')
-
-  useEffect(() => {
-    setPage(1)
-    setCategory(defaultCategoryForSearch(search))
-    setWeek(String(currentChinaWeekday()))
-    setOrder('new')
-  }, [search])
 
   const query = useQuery({
-    queryKey: queryKeys.homeSectionList(endpoint, search, page, category, week, order),
+    queryKey: queryKeys.homeSectionList(endpoint, search),
     queryFn: () =>
       getHomeSectionList({
         mode: search.mode,
-        page,
+        page: search.page,
         sectionId: search.sectionId,
         sectionTitle: search.title,
         slug: search.slug,
@@ -100,12 +97,12 @@ function HomeSectionListPage() {
         filterValue: search.filterValue,
         category:
           search.mode === 'ranking'
-            ? rankingCategoryApiValue(category, search.rankTag)
+            ? rankingCategoryApiValue(search.category, search.rankTag)
             : search.mode === 'weekly'
-              ? category
+              ? search.category
               : null,
-        week: search.mode === 'weekly' ? week : null,
-        order: search.mode === 'ranking' ? order : null,
+        week: search.mode === 'weekly' ? search.week : null,
+        order: search.mode === 'ranking' ? search.order : null,
         endpoint
       }),
     staleTime: LIST_QUERY_STALE_TIME,
@@ -117,18 +114,46 @@ function HomeSectionListPage() {
   const title = query.data?.title || search.title || sectionModeTitle(search.mode)
 
   function updateCategory(value: string) {
-    setCategory(value)
-    setPage(1)
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        category: parseListCategory(search.mode, search.rankTag, value)
+      }
+    })
   }
 
   function updateWeek(value: string) {
-    setWeek(value)
-    setPage(1)
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        week: parseListWeek(value)
+      }
+    })
   }
 
   function updateOrder(value: string) {
-    setOrder(value)
-    setPage(1)
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        order: parseListOrder(value)
+      }
+    })
+  }
+
+  function updatePage(page: number) {
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page
+      }
+    })
   }
 
   return (
@@ -157,9 +182,9 @@ function HomeSectionListPage() {
         <SectionFilters
           mode={search.mode}
           rankTag={search.rankTag}
-          category={category}
-          week={week}
-          order={order}
+          category={search.category}
+          week={search.week}
+          order={search.order}
           onCategoryChange={updateCategory}
           onWeekChange={updateWeek}
           onOrderChange={updateOrder}
@@ -178,11 +203,11 @@ function HomeSectionListPage() {
         ) : (
           <>
             <ComicGrid items={items} />
-            <SectionPagination
-              page={page}
+            <ListPagination
+              page={search.page}
               hasMore={query.data?.hasMore ?? false}
               disabled={query.isFetching}
-              onPageChange={setPage}
+              onPageChange={updatePage}
             />
           </>
         )}
@@ -284,58 +309,6 @@ function FilterSelect({
   )
 }
 
-function SectionPagination({
-  page,
-  hasMore,
-  disabled,
-  onPageChange
-}: {
-  page: number
-  hasMore: boolean
-  disabled: boolean
-  onPageChange: (page: number) => void
-}) {
-  function changePage(nextPage: number) {
-    if (disabled || nextPage < 1 || nextPage === page) {
-      return
-    }
-
-    onPageChange(nextPage)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  return (
-    <Pagination className="py-3">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            text="上一页"
-            aria-disabled={page <= 1 || disabled}
-            className={page <= 1 || disabled ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page - 1)
-            }}
-          />
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            text="下一页"
-            aria-disabled={disabled || !hasMore}
-            className={disabled || !hasMore ? 'pointer-events-none opacity-50' : undefined}
-            onClick={event => {
-              event.preventDefault()
-              changePage(page + 1)
-            }}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  )
-}
-
 function sectionModeDescription(mode: HomeSectionListMode) {
   switch (mode) {
     case 'weekly':
@@ -372,12 +345,41 @@ function currentChinaWeekday() {
   return day === 0 ? 7 : day
 }
 
-function defaultCategoryForSearch(search: HomeSectionListSearch) {
-  if (search.mode === 'ranking') {
-    return defaultRankingCategory(search.rankTag)
+function defaultCategoryForMode(mode: HomeSectionListMode, rankTag: string) {
+  if (mode === 'ranking') {
+    return defaultRankingCategory(rankTag)
   }
 
   return 'all'
+}
+
+function parseListCategory(mode: HomeSectionListMode, rankTag: string, value: unknown) {
+  const fallback = defaultCategoryForMode(mode, rankTag)
+  const category = parseStringSearch(value, fallback)
+
+  if (mode === 'ranking') {
+    return rankingCategoryOptions(rankTag).some(option => option.value === category)
+      ? category
+      : fallback
+  }
+
+  if (mode === 'weekly') {
+    return WEEK_CATEGORY_OPTIONS.some(option => option.value === category) ? category : fallback
+  }
+
+  return fallback
+}
+
+function parseListWeek(value: unknown) {
+  const week = parseStringSearch(value, String(currentChinaWeekday()))
+
+  return WEEK_OPTIONS.some(option => option.value === week) ? week : String(currentChinaWeekday())
+}
+
+function parseListOrder(value: unknown) {
+  const order = parseStringSearch(value, 'new')
+
+  return RANKING_ORDER_OPTIONS.some(option => option.value === order) ? order : 'new'
 }
 
 function isHomeSectionListMode(value: unknown): value is HomeSectionListMode {

@@ -10,6 +10,7 @@ export function useReaderManifestQuery(comicId: string, endpoint: string) {
     queryFn: () => getComicReadManifest({ readId: comicId, endpoint }),
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
+    retry: false,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

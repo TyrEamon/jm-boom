@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { CalendarDaysIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
+import { ListPagination } from '@/components/list-pagination'
 import {
   Select,
   SelectContent,
@@ -21,16 +22,28 @@ import {
   LONG_LIVED_FILTERS_STALE_TIME
 } from '@/lib/query-cache'
 import { queryKeys } from '@/lib/query-keys'
+import { parsePositivePage, parseStringSearch } from '@/lib/route-search'
 import { useSettingsStore } from '@/stores/settings-store'
 
+type WeeklySearch = {
+  page: number
+  categoryId: string
+  typeId: string
+}
+
 export const Route = createFileRoute('/_app/weekly')({
+  validateSearch: (search: Record<string, unknown>): WeeklySearch => ({
+    page: parsePositivePage(search.page),
+    categoryId: parseStringSearch(search.categoryId),
+    typeId: parseStringSearch(search.typeId)
+  }),
   component: WeeklyPage
 })
 
 function WeeklyPage() {
   const endpoint = useSettingsStore(state => state.api)
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [typeId, setTypeId] = useState<string | null>(null)
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = Route.useSearch()
 
   const filters = useQuery({
     queryKey: queryKeys.weekFilters(endpoint),
@@ -48,27 +61,36 @@ function WeeklyPage() {
       return
     }
 
-    setCategoryId(current =>
-      current != null && categories.some(category => category.id === current)
-        ? current
-        : (filters.data.defaultCategoryId ?? categories[0]?.id ?? null)
-    )
-    setTypeId(current =>
-      current != null && types.some(type => type.id === current)
-        ? current
-        : (filters.data.defaultTypeId ?? types[0]?.id ?? null)
-    )
-  }, [categories, filters.data, types])
+    const nextCategoryId = categories.some(category => category.id === search.categoryId)
+      ? search.categoryId
+      : (filters.data.defaultCategoryId ?? categories[0]?.id ?? '')
+    const nextTypeId = types.some(type => type.id === search.typeId)
+      ? search.typeId
+      : (filters.data.defaultTypeId ?? types[0]?.id ?? '')
+
+    if (nextCategoryId !== search.categoryId || nextTypeId !== search.typeId) {
+      void navigate({
+        replace: true,
+        search: {
+          ...search,
+          page: 1,
+          categoryId: nextCategoryId,
+          typeId: nextTypeId
+        }
+      })
+    }
+  }, [categories, filters.data, navigate, search, types])
 
   const selectedCategoryId =
-    categoryId ?? filters.data?.defaultCategoryId ?? categories[0]?.id ?? ''
-  const selectedTypeId = typeId ?? filters.data?.defaultTypeId ?? types[0]?.id ?? ''
+    search.categoryId || filters.data?.defaultCategoryId || categories[0]?.id || ''
+  const selectedTypeId = search.typeId || filters.data?.defaultTypeId || types[0]?.id || ''
   const canLoadItems = selectedCategoryId.length > 0 && selectedTypeId.length > 0
 
   const items = useQuery({
-    queryKey: queryKeys.weekItems(endpoint, selectedCategoryId, selectedTypeId, 1),
+    queryKey: queryKeys.weekItems(endpoint, selectedCategoryId, selectedTypeId, search.page),
     queryFn: () =>
       getWeekItems({
+        page: search.page,
         categoryId: selectedCategoryId,
         typeId: selectedTypeId,
         endpoint
@@ -85,6 +107,40 @@ function WeeklyPage() {
     if (canLoadItems) {
       items.refetch()
     }
+  }
+
+  function updateTypeId(typeId: string) {
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        typeId
+      }
+    })
+  }
+
+  function updateCategoryId(categoryId: string) {
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page: 1,
+        categoryId
+      }
+    })
+  }
+
+  function updatePage(page: number) {
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        page,
+        categoryId: selectedCategoryId,
+        typeId: selectedTypeId
+      }
+    })
   }
 
   return (
@@ -106,7 +162,7 @@ function WeeklyPage() {
         <>
           <div className="mb-4 flex justify-between gap-3">
             {types.length > 0 ? (
-              <Tabs value={selectedTypeId} onValueChange={value => setTypeId(value)}>
+              <Tabs value={selectedTypeId} onValueChange={updateTypeId}>
                 <TabsList>
                   {types.map(type => (
                     <TabsTrigger key={type.id} value={type.id} className="min-w-16">
@@ -120,7 +176,7 @@ function WeeklyPage() {
             )}
 
             {categories.length > 0 ? (
-              <Select value={selectedCategoryId} onValueChange={value => setCategoryId(value)}>
+              <Select value={selectedCategoryId} onValueChange={updateCategoryId}>
                 <SelectTrigger>
                   <CalendarDaysIcon className="size-4 text-muted-foreground" />
                   <SelectValue placeholder="选择期数" />
@@ -152,11 +208,30 @@ function WeeklyPage() {
             ) : items.data == null || items.data.items.length === 0 ? (
               <StatePanel title="暂无每周推荐" description="当前筛选条件下没有内容。" />
             ) : (
-              <ComicGrid items={items.data.items} />
+              <>
+                <ComicGrid items={items.data.items} />
+                <ListPagination
+                  page={search.page}
+                  hasMore={weekItemsHasMore(items.data, search.page)}
+                  disabled={items.isFetching}
+                  onPageChange={updatePage}
+                />
+              </>
             )}
           </section>
         </>
       )}
     </div>
   )
+}
+
+function weekItemsHasMore(
+  data: { total: number; items: unknown[] } | null | undefined,
+  page: number
+) {
+  if (data == null || data.items.length === 0) {
+    return false
+  }
+
+  return data.total > page * data.items.length
 }

@@ -13,7 +13,6 @@ use super::image_decode::{
 use super::manifest::url_host;
 use super::types::{ComicReadPageResult, ReaderManifest, ReaderPage, ReaderPageMaterializeOrigin};
 use crate::api::{build_http_client, ApiError, ApiErrorKind, ApiResult};
-use crate::diagnostics;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -111,14 +110,15 @@ async fn materialize_reader_page_inner(
         match fs::metadata(&indexed_path) {
             Ok(metadata) if metadata.is_file() => {
                 touch_reader_cache_entry(manifest, &page).await?;
-                diagnostics::debug(format!(
-                    "Reader page cache hit read_id={} page={} origin={} lock_wait_ms={:.1} total_ms={:.1}",
-                    manifest.read_id,
-                    index + 1,
-                    origin.as_str(),
-                    elapsed_ms(lock_wait_elapsed),
-                    elapsed_ms(materialize_started_at.elapsed()),
-                ));
+                tracing::debug!(
+                    read_id = %manifest.read_id,
+                    page = index + 1,
+                    origin = origin.as_str(),
+                    cache_hit = true,
+                    lock_wait_ms = elapsed_ms(lock_wait_elapsed),
+                    total_ms = elapsed_ms(materialize_started_at.elapsed()),
+                    "reader page cache hit"
+                );
 
                 return Ok(page_result(
                     manifest,
@@ -130,16 +130,19 @@ async fn materialize_reader_page_inner(
                 ));
             }
             Ok(_) => {
-                diagnostics::warn(
-                    "Failed to read cached reader page, refreshing it: cached path is not a file",
+                tracing::warn!(
+                    path = %indexed_path.to_string_lossy(),
+                    "failed to read cached reader page, refreshing it: cached path is not a file",
                 );
                 let _ = fs::remove_file(&indexed_path);
                 delete_reader_cache_entry(manifest, &page).await?;
             }
             Err(error) => {
-                diagnostics::warn(format!(
-                    "Failed to read cached reader page, refreshing it: {error}"
-                ));
+                tracing::warn!(
+                    path = %indexed_path.to_string_lossy(),
+                    error = %error,
+                    "failed to read cached reader page, refreshing it"
+                );
                 let _ = fs::remove_file(&indexed_path);
                 delete_reader_cache_entry(manifest, &page).await?;
             }
@@ -202,16 +205,17 @@ async fn materialize_reader_page_inner(
         .elapsed()
         .saturating_sub(download_elapsed);
 
-    diagnostics::debug(format!(
-        "Reader page materialized read_id={} page={} origin={} lock_wait_ms={:.1} download_ms={:.1} cache_ms={:.1} total_ms={:.1}",
-        manifest.read_id,
-        index + 1,
-        origin.as_str(),
-        elapsed_ms(lock_wait_elapsed),
-        elapsed_ms(download_elapsed),
-        elapsed_ms(cache_elapsed),
-        elapsed_ms(materialize_started_at.elapsed())
-    ));
+    tracing::debug!(
+        read_id = %manifest.read_id,
+        page = index + 1,
+        origin = origin.as_str(),
+        cache_hit = false,
+        lock_wait_ms = elapsed_ms(lock_wait_elapsed),
+        download_ms = elapsed_ms(download_elapsed),
+        cache_ms = elapsed_ms(cache_elapsed),
+        total_ms = elapsed_ms(materialize_started_at.elapsed()),
+        "reader page materialized"
+    );
 
     Ok(page_result(
         manifest,
@@ -409,15 +413,16 @@ fn log_reader_cache_timing(
         .collect::<Vec<_>>()
         .join(" ");
 
-    diagnostics::debug(format!(
-        "Reader cache write read_id={} page={} origin={} mode={} {} {}",
-        manifest.read_id,
-        page.index + 1,
-        origin.as_str(),
+    tracing::debug!(
+        read_id = %manifest.read_id,
+        page = page.index + 1,
+        origin = origin.as_str(),
+        cache_hit = false,
         mode,
-        size_info,
-        timings
-    ));
+        size = %size_info,
+        timings = %timings,
+        "reader cache write"
+    );
 }
 
 fn reader_cache_size_log(source_bytes: u64, output_bytes: Option<u64>) -> String {

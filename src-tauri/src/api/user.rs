@@ -27,9 +27,7 @@ pub async fn login(
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load remote setting for user avatar: {error}"
-            ));
+            tracing::warn!(error = %error, "failed to load remote setting for user avatar");
             None
         }
     };

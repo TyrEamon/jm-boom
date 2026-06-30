@@ -69,7 +69,8 @@ export function useReaderPrefetch({
             queryKey: pageQueryKey(index),
             queryFn: () => requestPage(index, 'prefetch'),
             staleTime: READER_STALE_TIME,
-            gcTime: READER_GC_TIME
+            gcTime: READER_GC_TIME,
+            retry: false
           })
           .catch(error => {
             if (import.meta.env.DEV) {

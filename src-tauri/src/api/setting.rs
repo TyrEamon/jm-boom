@@ -178,9 +178,10 @@ pub(crate) async fn discover_api_endpoint_candidates(
             );
         }
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to load JM host config, fallback endpoints only: {error}"
-            ));
+            tracing::warn!(
+                error = %error,
+                "failed to load JM host config, using fallback endpoints only"
+            );
         }
     }
 
@@ -299,9 +300,12 @@ where
     match runtime_cache::get(cache_kind, cache_key).await {
         Ok(value) => value,
         Err(error) => {
-            diagnostics::warn(format!(
-                "Failed to read runtime cache kind={cache_kind} key={cache_key}: {error}"
-            ));
+            tracing::warn!(
+                cache_kind = %cache_kind,
+                cache_key = %cache_key,
+                error = %error,
+                "failed to read runtime cache"
+            );
             None
         }
     }
@@ -312,8 +316,11 @@ where
     T: serde::Serialize,
 {
     if let Err(error) = runtime_cache::set(cache_kind, cache_key, value, ttl).await {
-        diagnostics::warn(format!(
-            "Failed to write runtime cache kind={cache_kind} key={cache_key}: {error}"
-        ));
+        tracing::warn!(
+            cache_kind = %cache_kind,
+            cache_key = %cache_key,
+            error = %error,
+            "failed to write runtime cache"
+        );
     }
 }

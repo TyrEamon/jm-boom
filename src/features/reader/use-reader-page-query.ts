@@ -46,6 +46,7 @@ export function useReaderPageQuery({
     enabled,
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
+    retry: false,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })

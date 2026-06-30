@@ -31,8 +31,6 @@ export type AppUpdateCheckResult = {
 export type DiagnosticsInfo = {
   logDir: string
   debugLoggingEnabled: boolean
-  maxLogFileBytes: number
-  maxLogFileCount: number
 }
 
 export async function getRemoteSetting({
@@ -129,8 +127,6 @@ export async function setDiagnosticsDebugLogging(enabled: boolean): Promise<Diag
 function emptyDiagnosticsInfo(): DiagnosticsInfo {
   return {
     logDir: '',
-    debugLoggingEnabled: import.meta.env.DEV,
-    maxLogFileBytes: 0,
-    maxLogFileCount: 0
+    debugLoggingEnabled: import.meta.env.DEV
   }
 }
