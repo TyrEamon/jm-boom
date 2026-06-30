@@ -8,7 +8,7 @@ export type ReaderSearch = {
   nextChapter: string
 }
 
-export type ReaderNextChapter = {
+export type ReaderChapterItem = {
   id: string
   title: string
 }

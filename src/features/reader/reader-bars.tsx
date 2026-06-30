@@ -1,9 +1,10 @@
-import { Link } from '@tanstack/react-router'
 import { ArrowLeftIcon, LoaderCircleIcon, RotateCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { ReaderNextChapter } from './types'
+import { ReaderChapterControls } from './reader-chapter-controls'
+import { ReaderProgressSlider } from './reader-progress-slider'
+import type { ReaderChapterItem } from './types'
 
 export function ReaderTopBar({
   fallbackReadId,
@@ -35,7 +36,7 @@ export function ReaderTopBar({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-self-start text-neutral-50 hover:bg-white/10"
+        className="justify-self-start text-neutral-50 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50"
         onClick={onBack}
       >
         <ArrowLeftIcon className="size-4" />
@@ -51,7 +52,7 @@ export function ReaderTopBar({
         variant="ghost"
         size="icon-sm"
         aria-label="重新加载"
-        className="justify-self-end text-neutral-50 hover:bg-white/10"
+        className="justify-self-end text-neutral-50 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50"
         onClick={onRetry}
       >
         {isFetching ? (
@@ -66,72 +67,50 @@ export function ReaderTopBar({
 
 export function ReaderBottomBar({
   title,
+  currentReadId,
+  previousChapter,
   nextChapter,
+  chapters,
   albumId,
   currentIndex,
   pageCount,
-  showNextChapter,
-  visible
+  visible,
+  onPageChange
 }: {
   title: string
-  nextChapter: ReaderNextChapter | null
+  currentReadId: string
+  previousChapter: ReaderChapterItem | null
+  nextChapter: ReaderChapterItem | null
+  chapters: ReaderChapterItem[]
   albumId: string
   currentIndex: number
   pageCount: number
-  showNextChapter: boolean
   visible: boolean
+  onPageChange: (index: number) => void
 }) {
-  const progress = pageCount > 0 ? ((currentIndex + 1) / pageCount) * 100 : 0
-
   return (
-    <>
-      <footer
-        className={cn(
-          'absolute bottom-10 left-1/2 z-30 flex w-80 -translate-x-1/2 flex-col items-center gap-2 rounded-xl border border-border/70 bg-background/85 p-3 text-center text-foreground shadow-lg backdrop-blur transition-all duration-200',
-          visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
-        )}
-        onClick={event => event.stopPropagation()}
-      >
-        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-[width]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {pageCount === 0 ? 0 : currentIndex + 1} / {pageCount}
-        </div>
-      </footer>
-
-      {showNextChapter && nextChapter ? (
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'absolute right-8 bottom-20 z-30 bg-neutral-950/85 text-neutral-50 backdrop-blur transition-all duration-200 hover:bg-white/10',
-            visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
-          )}
-          onClick={event => event.stopPropagation()}
-        >
-          <Link
-            to="/reader/$comicId"
-            params={{ comicId: nextChapter.id }}
-            replace
-            search={{
-              title,
-              chapter: nextChapter.title,
-              albumId,
-              fromDetail: '1',
-              pageIndex: '0',
-              nextId: '',
-              nextChapter: ''
-            }}
-          >
-            下一章
-          </Link>
-        </Button>
-      ) : null}
-    </>
+    <footer
+      className={cn(
+        'absolute bottom-8 left-1/2 z-30 flex w-[560px] max-w-[calc(100vw-48px)] -translate-x-1/2 flex-col gap-2 rounded-xl border border-white/10 bg-neutral-950/85 p-3 text-neutral-50 shadow-lg backdrop-blur transition-all duration-200',
+        visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
+      )}
+      onClick={event => event.stopPropagation()}
+    >
+      <ReaderProgressSlider
+        currentIndex={currentIndex}
+        pageCount={pageCount}
+        onPageChange={onPageChange}
+      />
+      <ReaderChapterControls
+        title={title}
+        albumId={albumId}
+        currentReadId={currentReadId}
+        chapters={chapters}
+        previousChapter={previousChapter}
+        nextChapter={nextChapter}
+        currentIndex={currentIndex}
+        pageCount={pageCount}
+      />
+    </footer>
   )
 }

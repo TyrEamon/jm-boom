@@ -13,7 +13,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
   const cacheLimitBytes = readerCacheLimitMb * 1024 * 1024
   const manifest = useReaderManifestQuery(comicId, endpoint)
   const pageCount = manifest.data?.pageCount ?? 0
-  const { effectiveCurrentIndex, isLastPage, goToPreviousPage, goToNextPage } =
+  const { effectiveCurrentIndex, isLastPage, goToPreviousPage, goToNextPage, goToPage } =
     useReaderNavigation({
       comicId,
       endpoint,
@@ -77,6 +77,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
     isFetching: manifest.isFetching || page.isFetching,
     goToPreviousPage,
     goToNextPage,
+    goToPage,
     retry
   }
 }

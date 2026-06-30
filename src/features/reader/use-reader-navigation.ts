@@ -32,6 +32,16 @@ export function useReaderNavigation({
 
     setCurrentIndex(index => clampPageIndex(index + 1))
   }, [clampPageIndex, pageCount])
+  const goToPage = useCallback(
+    (index: number) => {
+      if (pageCount === 0) {
+        return
+      }
+
+      setCurrentIndex(clampPageIndex(index))
+    },
+    [clampPageIndex, pageCount]
+  )
 
   useEffect(() => {
     setCurrentIndex(initialPageIndex)
@@ -50,7 +60,8 @@ export function useReaderNavigation({
     effectiveCurrentIndex,
     isLastPage: pageCount > 0 && currentIndex >= pageCount - 1,
     goToPreviousPage,
-    goToNextPage
+    goToNextPage,
+    goToPage
   }
 }
 

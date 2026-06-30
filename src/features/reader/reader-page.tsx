@@ -24,16 +24,16 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
     hide: hideToolbar
   } = useReaderToolbarVisibility()
   const initialPageIndex = Number.parseInt(search.pageIndex ?? '', 10)
-  const { albumId, title, author, coverUrl, chapter, nextChapter } = useReaderChapterInfo({
-    comicId,
-    search
-  })
+  const { albumId, title, author, coverUrl, chapter, chapters, previousChapter, nextChapter } =
+    useReaderChapterInfo({
+      comicId,
+      search
+    })
   const {
     currentIndex,
     pageCount,
     pageSrc,
     pageWindow,
-    isLastPage,
     isManifestLoading,
     manifestError,
     isPageLoading,
@@ -41,6 +41,7 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
     isFetching,
     goToPreviousPage,
     goToNextPage,
+    goToPage,
     retry
   } = useReaderPages(comicId, Number.isNaN(initialPageIndex) ? 0 : initialPageIndex)
 
@@ -133,12 +134,15 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
 
       <ReaderBottomBar
         title={title}
+        currentReadId={comicId}
+        previousChapter={previousChapter}
         nextChapter={nextChapter}
+        chapters={chapters}
         albumId={albumId}
         currentIndex={currentIndex}
         pageCount={pageCount}
-        showNextChapter={isLastPage && nextChapter != null}
         visible={showReaderBars}
+        onPageChange={goToPage}
       />
     </main>
   )

@@ -5,7 +5,7 @@ import { getComicDetail } from '@/lib/api/comic'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 import { READER_GC_TIME, READER_STALE_TIME } from './constants'
-import { resolveCurrentChapterTitle, resolveNextChapter, toNextChapter } from './chapter-utils'
+import { resolveReaderChapterInfo } from './chapter-utils'
 import type { ReaderSearch } from './types'
 
 export function useReaderChapterInfo({
@@ -17,12 +17,8 @@ export function useReaderChapterInfo({
 }) {
   const endpoint = useSettingsStore(state => state.api)
   const albumId = safeAlbumId(search.albumId)
-  const title = safeTrim(search.title)
+  const searchTitle = safeTrim(search.title)
   const searchChapter = safeTrim(search.chapter)
-  const fallbackNextChapter = useMemo(
-    () => toNextChapter(search.nextId, search.nextChapter),
-    [search.nextId, search.nextChapter]
-  )
   const albumDetail = useQuery({
     queryKey: queryKeys.comicDetail(endpoint, albumId),
     queryFn: () => getComicDetail(albumId, endpoint),
@@ -34,28 +30,29 @@ export function useReaderChapterInfo({
     refetchOnWindowFocus: false
   })
   const chapters = albumDetail.data?.comic.series ?? []
-  const nextChapter = useMemo(
+  const chapterInfo = useMemo(
     () =>
-      resolveNextChapter({
-        currentReadId: comicId,
-        chapters,
-        fallback: fallbackNextChapter
-      }),
-    [chapters, comicId, fallbackNextChapter]
-  )
-  const chapter = useMemo(
-    () =>
-      resolveCurrentChapterTitle({
+      resolveReaderChapterInfo({
         currentReadId: comicId,
         chapters,
         fallback: searchChapter
       }),
     [chapters, comicId, searchChapter]
   )
+  const title = searchTitle || safeTrim(albumDetail.data?.comic.title)
   const author = albumDetail.data?.comic.author.join(' / ') ?? ''
   const coverUrl = albumDetail.data?.comic.image ?? ''
 
-  return { albumId, title, author, coverUrl, chapter, nextChapter }
+  return {
+    albumId,
+    title,
+    author,
+    coverUrl,
+    chapter: chapterInfo.chapterTitle,
+    chapters: chapterInfo.chapters,
+    previousChapter: chapterInfo.previousChapter,
+    nextChapter: chapterInfo.nextChapter
+  }
 }
 
 function safeTrim(value: string | null | undefined) {

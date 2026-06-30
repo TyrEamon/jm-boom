@@ -1,52 +1,7 @@
 import type { ComicChapter } from '@/lib/api/comic'
-import type { ReaderNextChapter } from './types'
+import type { ReaderChapterItem } from './types'
 
-export function toNextChapter(id: string, title: string): ReaderNextChapter | null {
-  const trimmedId = id.trim()
-
-  if (trimmedId.length === 0) {
-    return null
-  }
-
-  return {
-    id: trimmedId,
-    title: title.trim()
-  }
-}
-
-export function resolveNextChapter({
-  currentReadId,
-  chapters,
-  fallback
-}: {
-  currentReadId: string
-  chapters: ComicChapter[]
-  fallback: ReaderNextChapter | null
-}) {
-  if (chapters.length === 0) {
-    return fallback
-  }
-
-  const sortedChapters = sortChapters(chapters)
-  const currentIndex = sortedChapters.findIndex(chapter => chapter.id === currentReadId)
-
-  if (currentIndex < 0) {
-    return fallback
-  }
-
-  const nextChapter = sortedChapters[currentIndex - 1]
-
-  if (!nextChapter) {
-    return null
-  }
-
-  return {
-    id: nextChapter.id,
-    title: formatChapterTitle(nextChapter, currentIndex - 1)
-  }
-}
-
-export function resolveCurrentChapterTitle({
+export function resolveReaderChapterInfo({
   currentReadId,
   chapters,
   fallback
@@ -55,20 +10,24 @@ export function resolveCurrentChapterTitle({
   chapters: ComicChapter[]
   fallback: string
 }) {
-  const trimmedFallback = fallback.trim()
+  const chapterItems = toReaderChapterItems(chapters)
+  const currentIndex = chapterItems.findIndex(chapter => chapter.id === currentReadId)
+  const currentChapter = currentIndex >= 0 ? chapterItems[currentIndex] : null
 
-  if (chapters.length === 0) {
-    return trimmedFallback
+  return {
+    chapterTitle: currentChapter?.title ?? fallback.trim(),
+    chapters: chapterItems,
+    currentChapter,
+    previousChapter: currentIndex >= 0 ? (chapterItems[currentIndex + 1] ?? null) : null,
+    nextChapter: currentIndex >= 0 ? (chapterItems[currentIndex - 1] ?? null) : null
   }
+}
 
-  const sortedChapters = sortChapters(chapters)
-  const currentIndex = sortedChapters.findIndex(chapter => chapter.id === currentReadId)
-
-  if (currentIndex < 0) {
-    return trimmedFallback
-  }
-
-  return formatChapterTitle(sortedChapters[currentIndex], currentIndex)
+export function toReaderChapterItems(chapters: ComicChapter[]): ReaderChapterItem[] {
+  return sortChapters(chapters).map((chapter, index) => ({
+    id: chapter.id,
+    title: formatChapterTitle(chapter, index)
+  }))
 }
 
 function formatChapterTitle(chapter: ComicChapter, index: number) {
