@@ -126,7 +126,7 @@
 
 - [ ] 去掉或门控发布版中的临时调试输出：`eprintln!`、`console.debug`、过量 reader 性能日志等。
 - [ ] 引入应用打包后的运行日志，用于用户反馈问题排查；默认记录 `info/warn/error`，开发调参日志仅在 debug 或显式开关下启用。
-- [ ] 日志写入应用日志目录，提供“打开日志目录”或“导出诊断日志”入口；日志需有大小限制或轮转策略。
+- [ ] 日志写入应用日志目录，在设置增加调试，提供“打开日志目录”或“导出诊断日志”入口；日志需有大小限制或轮转策略。
 - [ ] 日志内容避免敏感信息：不记录密码、JWT、完整鉴权 header；endpoint 可记录 host/耗时/状态，必要时脱敏。
 - [ ] 统一 Rust 侧日志入口，优先考虑 `tracing`/`log` facade 或 Tauri 日志插件；前端错误后续接入同一诊断路径。
 - 建议 commit msg：`feat(logging): add runtime diagnostics and gate debug logs`。
