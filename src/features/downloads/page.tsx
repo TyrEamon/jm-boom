@@ -1,0 +1,98 @@
+import { FolderOpenIcon, LoaderCircleIcon } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DownloadEmptyState } from './download-empty-state'
+import { DownloadTaskCard } from './download-task-card'
+import { DOWNLOAD_FILTERS, type DownloadFilter, useDownloadTasks } from './use-download-tasks'
+
+export function DownloadsPage() {
+  const {
+    filter,
+    setFilter,
+    tasks,
+    taskList,
+    filteredTasks,
+    filterCounts,
+    cancelTask,
+    pauseTask,
+    resumeTask,
+    removeTask,
+    openTaskDir,
+    openRootDir
+  } = useDownloadTasks()
+
+  return (
+    <main className="min-h-screen bg-background p-[96px_32px_32px_96px] text-foreground">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-normal">下载</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              查看下载进度、剩余时间和已完成文件目录
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={openRootDir.isPending}
+            onClick={() => openRootDir.mutate()}
+          >
+            <FolderOpenIcon className="size-4" />
+            下载目录
+          </Button>
+        </header>
+
+        <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)}>
+          <TabsList>
+            {DOWNLOAD_FILTERS.map(item => (
+              <TabsTrigger key={item.value} value={item.value} className="min-w-20">
+                {item.label}
+                <span className="ml-1 tabular-nums text-muted-foreground">
+                  {filterCounts[item.value]}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        {tasks.isLoading ? (
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+            正在读取下载任务
+          </div>
+        ) : tasks.isError ? (
+          <Card>
+            <CardContent className="p-6 text-sm text-destructive">
+              {tasks.error.message}
+            </CardContent>
+          </Card>
+        ) : taskList.length === 0 ? (
+          <DownloadEmptyState label="暂无下载任务" />
+        ) : filteredTasks.length === 0 ? (
+          <DownloadEmptyState label="当前筛选下暂无任务" />
+        ) : (
+          <div className="space-y-3">
+            {filteredTasks.map(task => (
+              <DownloadTaskCard
+                key={task.taskId}
+                task={task}
+                isCancelling={cancelTask.isPending}
+                isPausing={pauseTask.isPending}
+                isResuming={resumeTask.isPending}
+                isRemoving={removeTask.isPending}
+                isOpening={openTaskDir.isPending}
+                onCancel={() => cancelTask.mutate(task.taskId)}
+                onPause={() => pauseTask.mutate(task.taskId)}
+                onResume={() => resumeTask.mutate(task.taskId)}
+                onRemove={() => removeTask.mutate(task.taskId)}
+                onOpen={() => openTaskDir.mutate(task.taskId)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}

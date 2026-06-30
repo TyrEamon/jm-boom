@@ -166,9 +166,9 @@
 
 ### Phase 6：拆分下载模块
 
-- [ ] 拆分 `src/routes/_app/downloads.tsx`，抽 `DownloadTaskCard`、`DownloadEmptyState`、`DeleteTaskDialog`、`useDownloadTasks`。
-- [ ] 将 `src-tauri/src/download.rs` 拆为 `download/types.rs`、`manager.rs`、`storage.rs`、`paths.rs`、`progress.rs`。
-- [ ] 保持下载任务状态机、持久化格式、任务目录规则不变。
+- [x] 拆分 `src/routes/_app/downloads.tsx`，抽 `DownloadTaskCard`、`DownloadEmptyState`、`DeleteTaskDialog`、`useDownloadTasks`。
+- [x] 将 `src-tauri/src/download.rs` 拆为 `download/types.rs`、`manager.rs`、`storage.rs`、`paths.rs`、`progress.rs`。
+- [x] 保持下载任务状态机、持久化格式、任务目录规则不变。
 - 建议 commit msg：`refactor(downloads): split download ui and manager modules`。
 
 ### Phase 7：收尾与架构文档同步
