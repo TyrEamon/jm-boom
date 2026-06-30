@@ -87,13 +87,14 @@
 
 ## Rust / Tauri API 要点
 
-- 主要 commands：`get_remote_setting`、`discover_api_endpoints`、`search_comics`、`get_home_feed`、`get_home_section_list`、`get_week_filters`、`get_week_items`、`get_comic_detail`、`toggle_comic_favorite`、`get_favorite_comics`、`get_comic_comments`、`login`、`get_current_session`、`get_sign_in_data`、`sign_in`、`clear_session`、`configure_network_proxy`、`get_reader_cache_stats`、`clear_reader_cache`、`open_reader_cache_dir`、`get_comic_read_manifest`、`get_comic_read_page`、`enqueue_comic_download`、`list_download_tasks`、`cancel_download_task`、`pause_download_task`、`resume_download_task`、`remove_download_task`、`open_download_task_dir`、`open_download_root_dir`、`check_app_update`、`install_app_update`。
+- 主要 commands：`get_remote_setting`、`discover_api_endpoints`、`search_comics`、`get_home_feed`、`get_home_section_list`、`get_week_filters`、`get_week_items`、`get_comic_detail`、`toggle_comic_favorite`、`get_favorite_comics`、`get_comic_comments`、`login`、`get_current_session`、`get_saved_login_config`、`save_login_credentials`、`set_login_auto_login`、`clear_login_credentials`、`get_sign_in_data`、`sign_in`、`clear_session`、`configure_network_proxy`、`get_reader_cache_stats`、`clear_reader_cache`、`open_reader_cache_dir`、`get_comic_read_manifest`、`get_comic_read_page`、`enqueue_comic_download`、`list_download_tasks`、`cancel_download_task`、`pause_download_task`、`resume_download_task`、`remove_download_task`、`open_download_task_dir`、`open_download_root_dir`、`check_app_update`、`install_app_update`。
 - 移动端 API `tokenparam` 版本对齐 Breeze 插件为 `2.0.20`。
 - API endpoint 动态发现从 `newsvr-2025.txt` 解密 host 池，合并本地 fallback 后测速；业务请求只规范化 http/https endpoint，空 endpoint 回退到 `https://www.cdnhjk.net`。
 - Rust 侧支持全局代理配置，`configure_network_proxy` 会重建共享 reqwest client；HTTP/SOCKS5 依赖 reqwest `socks` feature。
 - Tauri command 错误统一返回结构化 DTO：`kind`、`message`、`retryable`；前端 `tauriInvoke` 会转成 `TauriCommandError`。
 - 登录使用共享 reqwest client 和全局 JWT token 维持进程内会话。
-- JM API 当前没有单独的 current-user/profile 接口；保持登录通过加密保存账号密码，启动时重新调用 `/login` 获取最新用户资料和 JWT，不保存用户资料快照。
+- JM API 当前没有单独的 current-user/profile 接口；自动登录通过加密保存账号密码，启动时重新调用 `/login` 获取最新用户资料和 JWT，不保存用户资料快照。
+- 设置页账号区由“启用自动登录”开关控制；关闭时只更新 `auto_login = false`，不删除已保存的加密账号密码。
 - 退出登录调用 `clear_session`，会同时清理内存 JWT 和 SQLite 中的自动登录凭据。
 - 小说分组已过滤；详情接口遇到小说或书库内容会返回不支持提示，当前只实现漫画图片阅读链路。
 

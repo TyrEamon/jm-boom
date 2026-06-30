@@ -102,6 +102,29 @@ pub(crate) async fn save_login_credentials(
     })
 }
 
+pub(crate) async fn set_login_auto_login(auto_login: bool) -> ApiResult<Option<SavedLoginConfig>> {
+    let pool = pool().map_err(|error| ApiError::new(ApiErrorKind::Cache, error))?;
+    let changed = sqlx::query(
+        r#"
+        UPDATE saved_login_credentials
+        SET auto_login = ?, updated_at = ?
+        WHERE id = 1
+        "#,
+    )
+    .bind(if auto_login { 1_i64 } else { 0_i64 })
+    .bind(current_timestamp())
+    .execute(pool)
+    .await
+    .map_err(map_sqlx_error)?
+    .rows_affected();
+
+    if changed == 0 {
+        return Ok(None);
+    }
+
+    load_saved_login_config().await
+}
+
 pub(crate) async fn clear_login_credentials() -> ApiResult<()> {
     let pool = pool().map_err(|error| ApiError::new(ApiErrorKind::Cache, error))?;
     sqlx::query("DELETE FROM saved_login_credentials WHERE id = 1")

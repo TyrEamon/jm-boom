@@ -100,6 +100,10 @@ pub async fn save_login_credentials(
         .await
 }
 
+pub async fn set_login_auto_login(auto_login: bool) -> ApiResult<Option<SavedLoginConfig>> {
+    crate::storage::session::set_login_auto_login(auto_login).await
+}
+
 pub async fn clear_login_credentials() -> ApiResult<()> {
     crate::storage::session::clear_login_credentials().await
 }

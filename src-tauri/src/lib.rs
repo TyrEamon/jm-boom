@@ -202,6 +202,11 @@ async fn save_login_credentials(
 }
 
 #[tauri::command]
+async fn set_login_auto_login(auto_login: bool) -> CommandResult<Option<SavedLoginConfig>> {
+    api::set_login_auto_login(auto_login).await.map_err(Into::into)
+}
+
+#[tauri::command]
 async fn clear_login_credentials() -> CommandResult<()> {
     api::clear_login_credentials().await.map_err(Into::into)
 }
@@ -392,6 +397,7 @@ pub fn run() {
             get_current_session,
             get_saved_login_config,
             save_login_credentials,
+            set_login_auto_login,
             clear_login_credentials,
             get_sign_in_data,
             sign_in,

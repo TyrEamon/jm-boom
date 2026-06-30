@@ -95,6 +95,10 @@ export async function saveLoginCredentials({
   })
 }
 
+export async function setLoginAutoLogin(autoLogin: boolean): Promise<SavedLoginConfig | null> {
+  return tauriInvoke<SavedLoginConfig | null>('set_login_auto_login', { autoLogin })
+}
+
 export async function clearLoginCredentials(): Promise<void> {
   return tauriInvoke<void>('clear_login_credentials')
 }

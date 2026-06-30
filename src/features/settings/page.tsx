@@ -19,9 +19,9 @@ import {
 } from '@/lib/api/setting'
 import { clearReaderCache, getReaderCacheStats, openReaderCacheDir } from '@/lib/api/reader'
 import {
-  clearLoginCredentials,
   getSavedLoginConfig,
-  saveLoginCredentials
+  saveLoginCredentials,
+  setLoginAutoLogin
 } from '@/lib/api/user'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
@@ -99,17 +99,17 @@ export function SettingsPage() {
     }) => saveLoginCredentials({ username, password, endpoint: api, autoLogin }),
     onSuccess: data => {
       queryClient.setQueryData(queryKeys.savedLoginConfig(), data)
-      toast.success(data.autoLogin ? '自动登录已保存' : '账号配置已保存')
     },
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
     }
   })
-  const clearAccount = useMutation({
-    mutationFn: clearLoginCredentials,
-    onSuccess: () => {
-      queryClient.setQueryData(queryKeys.savedLoginConfig(), null)
-      toast.success('自动登录配置已清除')
+  const setAccountAutoLogin = useMutation({
+    mutationFn: setLoginAutoLogin,
+    onSuccess: data => {
+      if (data) {
+        queryClient.setQueryData(queryKeys.savedLoginConfig(), data)
+      }
     },
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
@@ -285,9 +285,9 @@ export function SettingsPage() {
               savedLoginConfig={savedLoginConfig.data}
               isLoading={savedLoginConfig.isLoading}
               isSaving={saveAccount.isPending}
-              isClearing={clearAccount.isPending}
-              onSave={input => saveAccount.mutate(input)}
-              onClear={() => clearAccount.mutate()}
+              isSettingAutoLogin={setAccountAutoLogin.isPending}
+              onAutoLoginChange={autoLogin => setAccountAutoLogin.mutate(autoLogin)}
+              onCredentialsChange={input => saveAccount.mutate(input)}
             />
 
             <Separator />
