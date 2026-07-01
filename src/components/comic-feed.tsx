@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ComicCover } from '@/components/comic-cover'
+import { PageHeader } from '@/components/page-header'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { FeedComic } from '@/lib/api/home'
 
@@ -20,11 +21,7 @@ export function FeedHeader({
   onRefresh?: () => void
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-4">
-      <div className="min-w-0 space-y-2">
-        <h1 className="text-3xl font-bold tracking-normal">{title}</h1>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
+    <PageHeader title={title} desc={description}>
       {onRefresh ? (
         <Button
           type="button"
@@ -38,7 +35,7 @@ export function FeedHeader({
           <RefreshCwIcon className={isFetching ? 'animate-spin' : undefined} />
         </Button>
       ) : null}
-    </div>
+    </PageHeader>
   )
 }
 

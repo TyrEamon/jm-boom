@@ -1,5 +1,6 @@
 import { FolderOpenIcon, LoaderCircleIcon } from 'lucide-react'
 
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -26,13 +27,7 @@ export function DownloadsPage() {
   return (
     <main className="min-h-screen bg-background p-[32px_32px_16px_96px] text-foreground">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">下载</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              查看下载进度、剩余时间和已完成文件目录
-            </p>
-          </div>
+        <PageHeader title="下载" desc="查看下载进度、剩余时间和已完成文件目录">
           <Button
             variant="outline"
             size="sm"
@@ -42,7 +37,7 @@ export function DownloadsPage() {
             <FolderOpenIcon className="size-4" />
             下载目录
           </Button>
-        </header>
+        </PageHeader>
 
         <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)}>
           <TabsList>

@@ -65,55 +65,57 @@ function MePage() {
   }
 
   return (
-    <main className="h-screen p-[32px_32px_16px_96px]">
-      <PageHeader title="个人中心" desc="展示用户信息">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" disabled>
-            <BadgeCheckIcon className="size-4" />
-            {signInState.isSigning
-              ? '签到中'
-              : signInState.todayRecord?.signed
-                ? '已签到'
-                : '未签到'}
-          </Button>
-          <LogoutConfirmDialog onConfirm={() => void handleLogout()} />
-        </div>
-      </PageHeader>
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+        <PageHeader title="个人中心" desc="展示用户信息">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" disabled>
+              <BadgeCheckIcon className="size-4" />
+              {signInState.isSigning
+                ? '签到中'
+                : signInState.todayRecord?.signed
+                  ? '已签到'
+                  : '未签到'}
+            </Button>
+            <LogoutConfirmDialog onConfirm={() => void handleLogout()} />
+          </div>
+        </PageHeader>
 
-      <div className="mt-16 flex flex-col items-center">
-        <Avatar className="size-32">
-          <AvatarImage src={user.avatarUrl} />
-          <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="mt-4 flex flex-col items-center gap-2">
-          <h2 className="truncate text-4xl font-bold">{user.username}</h2>
-          <p className="text-sm text-muted-foreground">UID {user.id}</p>
-        </div>
+        <div className="flex flex-col items-center pt-10">
+          <Avatar className="size-32">
+            <AvatarImage src={user.avatarUrl} />
+            <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <h2 className="truncate text-4xl font-bold">{user.username}</h2>
+            <p className="text-sm text-muted-foreground">UID {user.id}</p>
+          </div>
 
-        <div className="mt-12 flex gap-16">
-          {[
-            {
-              label: '经验',
-              value: `${user.currentLevelExp}/${user.nextLevelExp}`
-            },
-            {
-              label: '等级',
-              value: `${user.level}（${user.levelName || '未命名'}）`
-            },
-            {
-              label: '金币',
-              value: user.jCoin.toLocaleString('zh-CN')
-            },
-            {
-              label: '收藏',
-              value: `${user.currentCollectCount}/${user.maxCollectCount}`
-            }
-          ].map(item => (
-            <div key={item.label} className="flex flex-col items-center gap-2">
-              <div className="text-sm text-muted-foreground">{item.label}</div>
-              <div className="truncate text-xl font-bold">{item.value}</div>
-            </div>
-          ))}
+          <div className="mt-12 flex gap-16">
+            {[
+              {
+                label: '经验',
+                value: `${user.currentLevelExp}/${user.nextLevelExp}`
+              },
+              {
+                label: '等级',
+                value: `${user.level}（${user.levelName || '未命名'}）`
+              },
+              {
+                label: '金币',
+                value: user.jCoin.toLocaleString('zh-CN')
+              },
+              {
+                label: '收藏',
+                value: `${user.currentCollectCount}/${user.maxCollectCount}`
+              }
+            ].map(item => (
+              <div key={item.label} className="flex flex-col items-center gap-2">
+                <div className="text-sm text-muted-foreground">{item.label}</div>
+                <div className="truncate text-xl font-bold">{item.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </main>

@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -234,16 +235,12 @@ export function SettingsPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-5xl space-y-8 p-[32px_32px_16px_96px]">
-        <header className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">设置</h1>
-            <p className="mt-2 text-sm text-muted-foreground">调整 APP 配置和内容显示偏好</p>
-          </div>
+        <PageHeader title="设置" desc="调整 APP 配置和内容显示偏好">
           <Button variant="outline" size="sm" onClick={resetSettings} className="text-xs">
             <RotateCcwIcon className="size-4" />
             恢复默认
           </Button>
-        </header>
+        </PageHeader>
 
         <Card>
           <CardContent className="space-y-8">

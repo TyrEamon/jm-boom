@@ -3,6 +3,7 @@ import { Clock3Icon, Trash2Icon } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 
+import { PageHeader } from '@/components/page-header'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,11 +35,7 @@ function HistoryPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
-        <header className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">历史观看</h1>
-            <p className="mt-2 text-sm text-muted-foreground">本地保存的阅读进度</p>
-          </div>
+        <PageHeader title="历史观看" desc="本地保存的阅读进度">
           <ClearHistoryDialog
             disabled={sortedItems.length === 0}
             onConfirm={() => {
@@ -46,7 +43,7 @@ function HistoryPage() {
               toast.success('阅读记录已清除')
             }}
           />
-        </header>
+        </PageHeader>
 
         {sortedItems.length === 0 ? (
           <EmptyState />

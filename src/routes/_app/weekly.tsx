@@ -149,85 +149,87 @@ function WeeklyPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-[32px_32px_16px_96px]">
-      <PageBackButton />
-      <FeedHeader
-        title="每周推荐"
-        description="为你精选的本周热门作品"
-        isFetching={filters.isFetching || items.isFetching}
-        onRefresh={refresh}
-      />
-
-      {filters.isError ? (
-        <StatePanel
-          title="每周推荐筛选加载失败"
-          description={filters.error.message}
-          onRetry={() => filters.refetch()}
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+        <PageBackButton />
+        <FeedHeader
+          title="每周推荐"
+          description="为你精选的本周热门作品"
+          isFetching={filters.isFetching || items.isFetching}
+          onRefresh={refresh}
         />
-      ) : (
-        <>
-          <div className="mb-4 flex justify-between gap-3">
-            {types.length > 0 ? (
-              <Tabs value={selectedTypeId} onValueChange={updateTypeId}>
-                <TabsList>
-                  {types.map(type => (
-                    <TabsTrigger key={type.id} value={type.id} className="min-w-16">
-                      {type.title}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            ) : (
-              <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
-            )}
 
-            {categories.length > 0 ? (
-              <Select value={selectedCategoryId} onValueChange={updateCategoryId}>
-                <SelectTrigger>
-                  <CalendarDaysIcon className="size-4 text-muted-foreground" />
-                  <SelectValue placeholder="选择期数" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {categories.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.label}
-                      </SelectItem>
+        {filters.isError ? (
+          <StatePanel
+            title="每周推荐筛选加载失败"
+            description={filters.error.message}
+            onRetry={() => filters.refetch()}
+          />
+        ) : (
+          <>
+            <div className="mb-4 flex justify-between gap-3">
+              {types.length > 0 ? (
+                <Tabs value={selectedTypeId} onValueChange={updateTypeId}>
+                  <TabsList>
+                    {types.map(type => (
+                      <TabsTrigger key={type.id} value={type.id} className="min-w-16">
+                        {type.title}
+                      </TabsTrigger>
                     ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="h-9 w-full animate-pulse rounded-md bg-muted lg:w-[320px]" />
-            )}
-          </div>
+                  </TabsList>
+                </Tabs>
+              ) : (
+                <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
+              )}
 
-          <section>
-            {items.isError ? (
-              <StatePanel
-                title="每周推荐加载失败"
-                description={items.error.message}
-                onRetry={() => items.refetch()}
-              />
-            ) : !canLoadItems || items.isLoading ? (
-              <ComicGridSkeleton />
-            ) : items.data == null || items.data.items.length === 0 ? (
-              <StatePanel title="暂无每周推荐" description="当前筛选条件下没有内容。" />
-            ) : (
-              <>
-                <ComicGrid items={items.data.items} />
-                <ListPagination
-                  page={search.page}
-                  hasMore={weekItemsHasMore(items.data, search.page)}
-                  disabled={items.isFetching}
-                  onPageChange={updatePage}
+              {categories.length > 0 ? (
+                <Select value={selectedCategoryId} onValueChange={updateCategoryId}>
+                  <SelectTrigger>
+                    <CalendarDaysIcon className="size-4 text-muted-foreground" />
+                    <SelectValue placeholder="选择期数" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="h-9 w-full animate-pulse rounded-md bg-muted lg:w-[320px]" />
+              )}
+            </div>
+
+            <section>
+              {items.isError ? (
+                <StatePanel
+                  title="每周推荐加载失败"
+                  description={items.error.message}
+                  onRetry={() => items.refetch()}
                 />
-              </>
-            )}
-          </section>
-        </>
-      )}
-    </div>
+              ) : !canLoadItems || items.isLoading ? (
+                <ComicGridSkeleton />
+              ) : items.data == null || items.data.items.length === 0 ? (
+                <StatePanel title="暂无每周推荐" description="当前筛选条件下没有内容。" />
+              ) : (
+                <>
+                  <ComicGrid items={items.data.items} />
+                  <ListPagination
+                    page={search.page}
+                    hasMore={weekItemsHasMore(items.data, search.page)}
+                    disabled={items.isFetching}
+                    onPageChange={updatePage}
+                  />
+                </>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+    </main>
   )
 }
 
