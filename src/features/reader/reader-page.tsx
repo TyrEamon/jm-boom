@@ -9,6 +9,7 @@ import { ReaderStripWindow } from './reader-strip-window'
 import type { ReaderSearch } from './types'
 import { useReaderChapterInfo } from './use-reader-chapter-info'
 import { useReaderKeyboardNavigation } from './use-reader-keyboard-navigation'
+import { useNextChapterPrefetch } from './use-next-chapter-prefetch'
 import { useReaderPages } from './use-reader-pages'
 import { useReaderToolbarVisibility } from './use-reader-toolbar-visibility'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,7 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
   const readerDoublePageMode = useSettingsStore(state => state.readerDoublePageMode)
   const isStripMode = readerReadMode === 'strip'
   const isDoublePageMode = !isStripMode && readerDoublePageMode
+  const pageStep = isDoublePageMode ? 2 : 1
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const {
     isVisible: isToolbarVisible,
@@ -59,7 +61,7 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
   } = useReaderPages(
     comicId,
     Number.isNaN(initialPageIndex) ? 0 : initialPageIndex,
-    isDoublePageMode ? 2 : 1
+    pageStep
   )
 
   useEffect(() => {
@@ -128,6 +130,12 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
     onScrollNext: () => scrollStripBy(1),
     onBack: goBack,
     onNavigate: hideToolbar
+  })
+  useNextChapterPrefetch({
+    currentIndex,
+    pageCount,
+    nextChapter,
+    pageStep
   })
 
   const showReaderBars = isToolbarVisible && pageCount > 0
