@@ -112,6 +112,14 @@ jobs:
           - os: ubuntu-22.04-arm
             platform: linux-aarch64
             arch: arm64
+          - os: macos-13
+            platform: macos-x86_64
+            arch: x86_64
+            target: x86_64-apple-darwin
+          - os: macos-14
+            platform: macos-aarch64
+            arch: arm64
+            target: aarch64-apple-darwin
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -128,6 +136,10 @@ jobs:
         if: runner.os == 'Windows' && matrix.arch == 'arm64'
         shell: pwsh
         run: rustup target add aarch64-pc-windows-msvc
+
+      - name: Add macOS target
+        if: runner.os == 'macOS'
+        run: rustup target add ${{ matrix.target }}
 
       - name: Install Linux system deps
         if: runner.os == 'Linux'
@@ -201,6 +213,12 @@ jobs:
         if: runner.os == 'Linux'
         run: bun run tauri build --bundles appimage,deb,rpm
 
+      - name: Build Tauri macOS packages
+        if: runner.os == 'macOS'
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: bun run tauri build --target "$RELEASE_TARGET" --bundles app,dmg
+
       - name: Prepare Windows release assets
         if: runner.os == 'Windows'
         shell: pwsh
@@ -256,6 +274,49 @@ jobs:
           if [ -n "$rpm" ]; then
             cp "$rpm" "release-assets/JM-Boom-$version-Linux-$RELEASE_ARCH.rpm"
           fi
+
+      - name: Prepare macOS release assets
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          version='${{ needs.prepare-release.outputs.tag }}'
+          bundle_root="src-tauri/target/$RELEASE_TARGET/release/bundle"
+
+          dmg="$(find "$bundle_root/dmg" -name '*.dmg' -type f | head -1 || true)"
+          if [ -z "$dmg" ]; then
+            echo "No DMG artifact found" >&2
+            exit 1
+          fi
+          cp "$dmg" "release-assets/JM-Boom-$version-macOS-$RELEASE_ARCH.dmg"
+
+          updater="$(find "$bundle_root" -type f \( -name '*.app.tar.gz' -o -name '*.tar.gz' -o -name '*.zip' \) | head -1 || true)"
+          if [ -z "$updater" ]; then
+            echo "No macOS updater artifact found" >&2
+            exit 1
+          fi
+
+          case "$updater" in
+            *.app.tar.gz) updater_ext="app.tar.gz" ;;
+            *.tar.gz) updater_ext="tar.gz" ;;
+            *.zip) updater_ext="zip" ;;
+            *)
+              echo "Unsupported macOS updater artifact: $updater" >&2
+              exit 1
+              ;;
+          esac
+
+          updater_dest="JM-Boom-$version-macOS-$RELEASE_ARCH.$updater_ext"
+          cp "$updater" "release-assets/$updater_dest"
+          if [ ! -f "$updater.sig" ]; then
+            echo "No updater signature found for $(basename "$updater")" >&2
+            exit 1
+          fi
+          cp "$updater.sig" "release-assets/$updater_dest.sig"
 
       - name: Upload release assets to workflow
         uses: actions/upload-artifact@v7
@@ -324,6 +385,8 @@ jobs:
           win_arm64_url=""; win_arm64_sig=""
           linux_x64_url=""; linux_x64_sig=""
           linux_arm64_url=""; linux_arm64_sig=""
+          macos_x64_url=""; macos_x64_sig=""
+          macos_arm64_url=""; macos_arm64_sig=""
 
           shopt -s nullglob
           for sig_file in dl/*.sig; do
@@ -341,6 +404,10 @@ jobs:
                 linux_arm64_url="$url"; linux_arm64_sig="$signature";;
               *-Linux-x86_64.AppImage|*-Linux-x86_64.appimage)
                 linux_x64_url="$url"; linux_x64_sig="$signature";;
+              *-macOS-arm64.app.tar.gz|*-macOS-arm64.tar.gz|*-macOS-arm64.zip)
+                macos_arm64_url="$url"; macos_arm64_sig="$signature";;
+              *-macOS-x86_64.app.tar.gz|*-macOS-x86_64.tar.gz|*-macOS-x86_64.zip)
+                macos_x64_url="$url"; macos_x64_sig="$signature";;
             esac
           done
 
@@ -370,6 +437,16 @@ jobs:
             if [ -n "$linux_arm64_url" ] && [ -n "$linux_arm64_sig" ]; then
               [ "$first" -eq 0 ] && echo ","
               echo "    \"linux-aarch64\": {\"signature\": \"$linux_arm64_sig\", \"url\": \"$linux_arm64_url\"}"
+              first=0
+            fi
+            if [ -n "$macos_x64_url" ] && [ -n "$macos_x64_sig" ]; then
+              [ "$first" -eq 0 ] && echo ","
+              echo "    \"darwin-x86_64\": {\"signature\": \"$macos_x64_sig\", \"url\": \"$macos_x64_url\"}"
+              first=0
+            fi
+            if [ -n "$macos_arm64_url" ] && [ -n "$macos_arm64_sig" ]; then
+              [ "$first" -eq 0 ] && echo ","
+              echo "    \"darwin-aarch64\": {\"signature\": \"$macos_arm64_sig\", \"url\": \"$macos_arm64_url\"}"
               first=0
             fi
             echo ""
