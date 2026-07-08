@@ -2,10 +2,7 @@ import { Trash2Icon } from 'lucide-react'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog'
+import { useState } from 'react'
 
 interface DeleteSelectedHistoryDialogProps {
   count: number
@@ -18,24 +15,30 @@ export function DeleteSelectedHistoryDialog({
   disabled,
   onConfirm
 }: DeleteSelectedHistoryDialogProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button type="button" variant="destructive" size="sm" disabled={disabled}>
-          <Trash2Icon className="size-4" />
-          删除选中
-        </Button>
-      </AlertDialogTrigger>
+    <>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
+        <Trash2Icon className="size-4" />
+        删除选中
+      </Button>
       <ConfirmDialog
-        open={false}
-        onOpenChange={() => {}}
+        open={open}
+        onOpenChange={setOpen}
         title="删除阅读记录"
         description={`这会删除选中的 ${count} 条本地阅读进度，删除后无法恢复。`}
         confirmText="确认删除"
         variant="destructive"
         onConfirm={onConfirm}
       />
-    </AlertDialog>
+    </>
   )
 }
 
@@ -45,23 +48,29 @@ interface ClearHistoryDialogProps {
 }
 
 export function ClearHistoryDialog({ disabled, onConfirm }: ClearHistoryDialogProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button type="button" variant="destructive" size="sm" disabled={disabled}>
-          <Trash2Icon className="size-4" />
-          清除记录
-        </Button>
-      </AlertDialogTrigger>
+    <>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
+        <Trash2Icon className="size-4" />
+        清除记录
+      </Button>
       <ConfirmDialog
-        open={false}
-        onOpenChange={() => {}}
+        open={open}
+        onOpenChange={setOpen}
         title="清除阅读记录"
         description="这会删除本地保存的全部阅读进度，清除后无法恢复。"
         confirmText="确认清除"
         variant="destructive"
         onConfirm={onConfirm}
       />
-    </AlertDialog>
+    </>
   )
 }

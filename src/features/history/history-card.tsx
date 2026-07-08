@@ -4,7 +4,7 @@ import { ComicCover } from '@/components/comic-cover'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { type ReadingHistoryItem } from '@/stores/reading-history-store'
 
 interface HistoryCardProps {
@@ -21,13 +21,13 @@ export function HistoryCard({
   onSelectionChange
 }: HistoryCardProps) {
   const coverSrc = item.coverUrl?.trim() ?? ''
-  const progress = item.pageCount > 0 ? ((item.pageIndex + 1) / item.pageCount) * 100 : 0
-  const title = item.title || `JM ${item.comicId}`
+  const progress = ((item.pageIndex + 1) / item.pageCount) * 100
+  const title = item.title
   const card = (
     <Card
       size="sm"
-      role={isSelecting ? 'button' : undefined}
       aria-pressed={isSelecting ? isSelected : undefined}
+      role={isSelecting ? 'button' : undefined}
       tabIndex={isSelecting ? 0 : undefined}
       className={cn(
         'gap-0 overflow-hidden py-0 transition-shadow hover:cursor-pointer hover:shadow-xl'
@@ -73,9 +73,6 @@ export function HistoryCard({
           <TooltipContent side="top">{title}</TooltipContent>
         </Tooltip>
         <p className="line-clamp-1 text-xs text-muted-foreground">{item.chapterTitle}</p>
-        {item.author ? (
-          <p className="line-clamp-1 text-xs text-muted-foreground">{item.author}</p>
-        ) : null}
         <p className="text-xs text-muted-foreground">
           {item.pageIndex + 1}/{item.pageCount} • {formatDate(item.updatedAt)}
         </p>
@@ -105,14 +102,4 @@ export function HistoryCard({
       {card}
     </Link>
   )
-}
-
-function formatDate(value: number) {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(value))
 }

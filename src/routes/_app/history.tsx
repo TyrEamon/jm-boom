@@ -86,9 +86,6 @@ function HistoryPage() {
         <PageHeader title="历史观看" desc="本地保存的历史阅读进度">
           {isSelecting ? (
             <>
-              <span className="text-sm text-muted-foreground">
-                {selectedCount > 0 ? `已选 ${selectedCount} 条` : '选择要删除的记录'}
-              </span>
               <Button
                 type="button"
                 variant="outline"
@@ -138,7 +135,7 @@ function HistoryPage() {
         </PageHeader>
 
         {sortedItems.length === 0 ? (
-          <EmptyState emoji="˙ᯅ˙)" title="暂无阅读记录" />
+          <EmptyState emoji="(˙ᯅ˙)" title="暂无阅读记录" />
         ) : (
           <div className="grid grid-cols-4 gap-6">
             {sortedItems.map(item => (
