@@ -1,5 +1,6 @@
 import { FolderOpenIcon, LoaderCircleIcon } from 'lucide-react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -88,6 +89,7 @@ export function DownloadsPage() {
           </div>
         )}
       </div>
+      <BackTopButton />
     </main>
   )
 }

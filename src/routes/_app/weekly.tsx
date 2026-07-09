@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { CalendarDaysIcon } from 'lucide-react'
 import { useEffect } from 'react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
 import { PageBackButton } from '@/components/page-back-button'
 import {
@@ -196,6 +197,7 @@ function WeeklyPage() {
           </>
         )}
       </div>
+      <BackTopButton />
     </main>
   )
 }

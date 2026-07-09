@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { toast } from 'sonner'
 import { useEffect, useMemo, useState } from 'react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { PageBackButton } from '@/components/page-back-button'
 import {
   getComicComments,
@@ -17,7 +18,7 @@ import { ChaptersSection } from './chapters'
 import { CommentsDrawer } from './comments'
 import { ComicHero } from './hero'
 import { RelatedPanel } from './related'
-import { BackTop, ComicDetailSkeleton, StatePanel } from './shared'
+import { ComicDetailSkeleton, StatePanel } from './shared'
 import {
   SINGLE_CHAPTER_TITLE,
   resolveAlbumId,
@@ -62,7 +63,7 @@ export function ComicDetailPage({ comicId }: { comicId: string }) {
           <ComicDetailView comic={detail.data.comic} />
         )}
       </div>
-      <BackTop />
+      <BackTopButton />
     </main>
   )
 }

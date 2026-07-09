@@ -1,32 +1,7 @@
-import { ChevronUpIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
-
 import { StatePanel } from '@/components/comic-feed'
-import { Button } from '@/components/ui/button'
 import { UI } from '@/lib/constants'
 
 export { ComicCover } from '@/components/comic-cover'
-
-export function BackTop() {
-  const isVisible = useBackTopVisibility(560)
-
-  if (!isVisible) {
-    return null
-  }
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      aria-label="回到顶部"
-      className="fixed right-8 bottom-8 z-50 bg-background/80 backdrop-blur"
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-    >
-      <ChevronUpIcon className="size-4" />
-    </Button>
-  )
-}
 
 export function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
@@ -105,29 +80,4 @@ function ChapterSkeletonList() {
       </div>
     </section>
   )
-}
-
-function useBackTopVisibility(threshold: number) {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    let frame = 0
-
-    function updateVisibility() {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => {
-        setIsVisible(window.scrollY > threshold)
-      })
-    }
-
-    updateVisibility()
-    window.addEventListener('scroll', updateVisibility, { passive: true })
-
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', updateVisibility)
-    }
-  }, [threshold])
-
-  return isVisible
 }

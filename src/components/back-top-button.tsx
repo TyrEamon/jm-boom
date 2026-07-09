@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-export function BackTop() {
+const BACK_TOP_THRESHOLD = 320
+
+export function BackTopButton() {
   const isVisible = useBackTopVisibility()
 
   if (!isVisible) {
@@ -15,8 +17,7 @@ export function BackTop() {
       type="button"
       variant="outline"
       size="icon"
-      aria-label="回到顶部"
-      className="fixed right-8 bottom-8 z-50 bg-background/80 backdrop-blur"
+      className="fixed right-4 bottom-8 z-50 bg-background/80 backdrop-blur"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
       <ChevronUpIcon className="size-4" />
@@ -33,7 +34,7 @@ function useBackTopVisibility() {
     function updateVisibility() {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        setIsVisible(window.scrollY > 480)
+        setIsVisible(window.scrollY > BACK_TOP_THRESHOLD)
       })
     }
 

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BarChart3Icon, ListFilterIcon } from 'lucide-react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
 import { ListPagination } from '@/components/list-pagination'
 import { PageBackButton } from '@/components/page-back-button'
@@ -166,6 +167,7 @@ function RankingPage() {
           </>
         )}
       </div>
+      <BackTopButton />
     </main>
   )
 }

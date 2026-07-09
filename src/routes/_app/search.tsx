@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ListFilterIcon, SearchIcon } from 'lucide-react'
 import { FormEvent, useEffect, useState } from 'react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
 import { ListPagination } from '@/components/list-pagination'
 import { PageBackButton } from '@/components/page-back-button'
@@ -177,6 +178,7 @@ function SearchPage() {
           onPageChange={updatePage}
         />
       </div>
+      <BackTopButton />
     </main>
   )
 }

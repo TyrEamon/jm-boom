@@ -5,7 +5,7 @@ import { getHomeFeed, type HomeFeedSection } from '@/lib/api/home'
 import { CACHE } from '@/lib/constants'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
-import { BackTop } from './back-top'
+import { BackTopButton } from '@/components/back-top-button'
 import { HomeFeedDirectory } from './home-directory'
 import { HomeFeedSections } from './home-feed-sections'
 import { HomeFeedSkeleton } from './home-feed-skeleton'
@@ -46,7 +46,7 @@ export function HomePage() {
         </div>
       </div>
       {sections.length > 0 ? <HomeFeedDirectory sections={sections} /> : null}
-      <BackTop />
+      <BackTopButton />
     </main>
   )
 }

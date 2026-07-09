@@ -3,6 +3,7 @@ import { CheckSquareIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
@@ -150,6 +151,7 @@ function HistoryPage() {
           </div>
         )}
       </div>
+      <BackTopButton />
     </main>
   )
 }

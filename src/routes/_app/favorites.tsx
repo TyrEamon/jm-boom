@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { BookmarkIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
 import { Button } from '@/components/ui/button'
 import {
@@ -127,6 +128,7 @@ function FavoritesPage() {
           )}
         </section>
       </div>
+      <BackTopButton />
     </main>
   )
 }
