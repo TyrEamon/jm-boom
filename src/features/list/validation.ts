@@ -1,15 +1,12 @@
 import type { HomeSectionListMode } from '@/lib/api/home'
-import { defaultRankingCategory, rankingCategoryOptions, RANKING_ORDER_OPTIONS } from '@/lib/ranking-filters'
+import { currentChinaWeekday } from '@/lib/date'
+import {
+  defaultRankingCategory,
+  rankingCategoryOptions,
+  RANKING_ORDER_OPTIONS
+} from '@/lib/ranking-filters'
 import { parseStringSearch } from '@/lib/route-search'
 import { WEEK_CATEGORY_OPTIONS, WEEK_OPTIONS } from './constants'
-
-function currentChinaWeekday() {
-  const date = new Date()
-  const chinaDate = new Date(date.getTime() + (date.getTimezoneOffset() + 480) * 60 * 1000)
-  const day = chinaDate.getDay()
-
-  return day === 0 ? 7 : day
-}
 
 function defaultCategoryForMode(mode: HomeSectionListMode, rankTag: string) {
   if (mode === 'ranking') {
@@ -45,7 +42,9 @@ export function parseListWeek(value: unknown) {
 export function parseListOrder(value: unknown) {
   const order = parseStringSearch(value, 'new')
 
-  return RANKING_ORDER_OPTIONS.some((option: { value: string }) => option.value === order) ? order : 'new'
+  return RANKING_ORDER_OPTIONS.some((option: { value: string }) => option.value === order)
+    ? order
+    : 'new'
 }
 
 export function isHomeSectionListMode(value: unknown): value is HomeSectionListMode {

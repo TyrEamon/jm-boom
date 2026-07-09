@@ -16,13 +16,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import type { ComicDetail } from '@/lib/api/comic'
-import { ComicCover } from './shared'
 import {
-  formatNumber,
-  getDisplayChapterCount,
-  resolveAlbumId,
-  resolveStartReadingTarget
-} from './utils'
+  getComicDisplayChapterCount,
+  resolveComicAlbumId,
+  resolveComicStartReadingTarget
+} from '@/lib/comic'
+import { formatNumber } from '@/lib/format'
+import { ComicCover } from './shared'
 
 export function ComicHero({
   comic,
@@ -39,8 +39,8 @@ export function ComicHero({
   downloadBusy?: boolean
   favoriteBusy?: boolean
 }) {
-  const albumId = resolveAlbumId(comic)
-  const startReading = resolveStartReadingTarget(comic)
+  const albumId = resolveComicAlbumId(comic)
+  const startReading = resolveComicStartReadingTarget(comic)
 
   return (
     <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-8">
@@ -132,7 +132,7 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
     {
       id: 'chapters',
       label: '章节',
-      value: formatNumber(getDisplayChapterCount(comic.series)),
+      value: formatNumber(getComicDisplayChapterCount(comic.series)),
       icon: LayersIcon
     }
   ]

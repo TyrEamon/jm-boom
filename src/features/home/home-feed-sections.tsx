@@ -4,8 +4,9 @@ import { ArrowRightIcon } from 'lucide-react'
 import { ComicGrid, StatePanel } from '@/components/comic-feed'
 import { Button } from '@/components/ui/button'
 import type { HomeFeedSection } from '@/lib/api/home'
+import { currentChinaWeekday } from '@/lib/date'
 import { defaultRankingCategory } from '@/lib/ranking-filters'
-import { currentChinaWeekday, homeSectionId } from './home-utils'
+import { homeSectionId } from './home-utils'
 
 export function HomeFeedSections({ sections }: { sections: HomeFeedSection[] }) {
   return (

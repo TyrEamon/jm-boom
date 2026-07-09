@@ -8,8 +8,15 @@ import {
   DrawerTitle
 } from '@/components/ui/drawer'
 import type { ComicComment } from '@/lib/api/comic'
+import { formatNumber } from '@/lib/format'
 import { CommentSkeletonList, StatePanel } from './shared'
-import { formatCommentTime, formatNumber, htmlToText } from './utils'
+import { useCallback } from 'react'
+
+const CHINESE_DATE_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+})
 
 export type CommentsState = {
   isLoading: boolean
@@ -23,27 +30,40 @@ export type CommentsState = {
   onLoadMore: () => void
 }
 
-export function CommentsDrawer({
-  open,
-  onOpenChange,
-  state
-}: {
+type CommentsDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   state: CommentsState
-}) {
+}
+
+export function CommentsDrawer({ open, onOpenChange, state }: CommentsDrawerProps) {
+  const { hasNextPage, isFetchingNextPage, onLoadMore } = state
+
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (!hasNextPage || isFetchingNextPage) {
+        return
+      }
+
+      const element = event.currentTarget
+      const distanceToBottom = element.scrollHeight - element.scrollTop - element.clientHeight
+
+      if (distanceToBottom <= 80) {
+        onLoadMore()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, onLoadMore]
+  )
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-[440px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[440px] data-[vaul-drawer-direction=right]:sm:max-w-[440px]">
+      <DrawerContent className="h-full w-110 overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-110 data-[vaul-drawer-direction=right]:sm:max-w-110">
         <DrawerHeader>
           <DrawerTitle>评论</DrawerTitle>
           <DrawerDescription>共 {formatNumber(state.total)} 条评论</DrawerDescription>
         </DrawerHeader>
 
-        <div
-          className="min-h-0 flex-1 overflow-y-auto px-6 pb-6"
-          onScroll={event => handleCommentsScroll(event.currentTarget, state)}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6" onScroll={handleScroll}>
           {state.isLoading ? (
             <CommentSkeletonList />
           ) : state.isError ? (
@@ -78,63 +98,63 @@ function CommentsEndState({ state }: { state: CommentsState }) {
     )
   }
 
-  if (state.hasNextPage) {
-    return <p className="py-2 text-center text-xs text-muted-foreground">继续向下滚动加载更多</p>
-  }
-
-  return <p className="py-2 text-center text-xs text-muted-foreground">暂无更多评论</p>
+  return (
+    <p className="py-2 text-center text-xs text-muted-foreground">
+      {state.hasNextPage ? '继续向下滚动加载更多' : '暂无更多评论'}
+    </p>
+  )
 }
 
 function CommentItem({ comment }: { comment: ComicComment }) {
-  const name = comment.nickname || comment.username || `用户 ${comment.userId}`
-  const content = htmlToText(comment.content)
+  const name = getCommentAuthorName(comment)
+  const content = getCommentText(comment, '这条评论没有内容')
 
   return (
     <div className="space-y-3 px-px py-1">
       <div className="space-y-1">
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium">{name}</span>
-          </div>
-          <div className="text-xs text-muted-foreground">{formatCommentTime(comment.time)}</div>
+        <div className="truncate text-sm font-medium">{name}</div>
+        <div className="text-xs text-muted-foreground">{formatCommentTime(comment.time)}</div>
+      </div>
+
+      <p className="text-xs text-card-foreground">{content}</p>
+
+      {comment.replies.length > 0 ? (
+        <div className="space-y-2 rounded-md bg-muted/60 p-3">
+          {comment.replies.map(reply => (
+            <ReplyItem key={reply.id} reply={reply} />
+          ))}
         </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-xs text-card-foreground">{content || '这条评论没有内容'}</p>
-
-        {comment.replies.length > 0 ? (
-          <div className="space-y-2 rounded-md bg-muted/60 p-3">
-            {comment.replies.map(reply => (
-              <ReplyItem key={reply.id} reply={reply} />
-            ))}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   )
 }
 
 function ReplyItem({ reply }: { reply: ComicComment }) {
-  const name = reply.nickname || reply.username || `用户 ${reply.userId}`
-  const content = htmlToText(reply.content)
+  const name = getCommentAuthorName(reply)
+  const content = getCommentText(reply, '这条回复没有内容')
 
   return (
     <div className="text-xs">
       <span className="font-medium">{name}</span>
-      <span className="text-muted-foreground"> ：{content || '这条回复没有内容'}</span>
+      <span className="text-muted-foreground"> ：{content}</span>
     </div>
   )
 }
 
-function handleCommentsScroll(element: HTMLDivElement, state: CommentsState) {
-  if (!state.hasNextPage || state.isFetchingNextPage) {
-    return
-  }
+function getCommentAuthorName(comment: ComicComment) {
+  return comment.nickname || comment.username || `用户 ${comment.userId}`
+}
 
-  const distanceToBottom = element.scrollHeight - element.scrollTop - element.clientHeight
+function getCommentText(comment: ComicComment, emptyText: string) {
+  return htmlToText(comment.content) || emptyText
+}
 
-  if (distanceToBottom <= 80) {
-    state.onLoadMore()
-  }
+function formatCommentTime(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : CHINESE_DATE_FORMATTER.format(date)
+}
+
+function htmlToText(value: string) {
+  const { body } = new DOMParser().parseFromString(value, 'text/html')
+  return body.textContent?.trim() ?? ''
 }

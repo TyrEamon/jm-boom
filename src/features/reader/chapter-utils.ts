@@ -1,4 +1,5 @@
 import type { ComicChapter } from '@/lib/api/comic'
+import { formatComicChapterTitle, sortComicChapters } from '@/lib/comic'
 import type { ReaderChapterItem } from './types'
 
 export function resolveReaderChapterInfo({
@@ -24,31 +25,8 @@ export function resolveReaderChapterInfo({
 }
 
 export function toReaderChapterItems(chapters: ComicChapter[]): ReaderChapterItem[] {
-  return sortChapters(chapters).map((chapter, index) => ({
+  return sortComicChapters(chapters).map((chapter, index) => ({
     id: chapter.id,
-    title: formatChapterTitle(chapter, index)
+    title: formatComicChapterTitle(chapter, index)
   }))
-}
-
-function formatChapterTitle(chapter: ComicChapter, index: number) {
-  const title = chapter.title.trim()
-
-  if (title.length > 0) {
-    return title
-  }
-
-  return chapter.sort ? `第 ${chapter.sort} 章` : `章节 ${index + 1}`
-}
-
-function sortChapters(chapters: ComicChapter[]) {
-  return [...chapters].sort((left, right) => {
-    const leftSort = Number.parseInt(left.sort, 10)
-    const rightSort = Number.parseInt(right.sort, 10)
-
-    if (Number.isNaN(leftSort) || Number.isNaN(rightSort)) {
-      return 0
-    }
-
-    return rightSort - leftSort
-  })
 }

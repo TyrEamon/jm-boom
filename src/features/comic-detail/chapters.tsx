@@ -13,16 +13,15 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination'
 import type { ComicChapter } from '@/lib/api/comic'
+import {
+  SINGLE_CHAPTER_TITLE,
+  formatComicChapterTitle,
+  getComicDisplayChapterCount,
+  sortComicChapters
+} from '@/lib/comic'
 import { UI } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from './shared'
-import {
-  SINGLE_CHAPTER_TITLE,
-  formatChapterTitle,
-  getDisplayChapterCount,
-  getVisiblePages,
-  sortChapters
-} from './utils'
 
 export function ChaptersSection({
   albumId,
@@ -35,8 +34,8 @@ export function ChaptersSection({
   comicTitle: string
   chapters: ComicChapter[]
 }) {
-  const sortedChapters = useMemo(() => sortChapters(chapters), [chapters])
-  const displayChapterCount = getDisplayChapterCount(chapters)
+  const sortedChapters = useMemo(() => sortComicChapters(chapters), [chapters])
+  const displayChapterCount = getComicDisplayChapterCount(chapters)
   const [page, setPage] = useState(1)
   const pageCount = Math.max(1, Math.ceil(sortedChapters.length / UI.CHAPTER_PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
@@ -92,9 +91,9 @@ export function ChaptersSection({
             {visibleChapters.map((chapter, index) => {
               const chapterIndex = (safePage - 1) * UI.CHAPTER_PAGE_SIZE + index
               const nextChapter = sortedChapters[chapterIndex - 1] ?? null
-              const chapterTitle = formatChapterTitle(chapter, chapterIndex)
+              const chapterTitle = formatComicChapterTitle(chapter, chapterIndex)
               const nextChapterTitle = nextChapter
-                ? formatChapterTitle(nextChapter, chapterIndex - 1)
+                ? formatComicChapterTitle(nextChapter, chapterIndex - 1)
                 : ''
 
               return (
@@ -138,6 +137,30 @@ export function ChaptersSection({
       )}
     </section>
   )
+}
+
+function getVisiblePages(currentPage: number, pageCount: number) {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1)
+  }
+
+  const pages = new Set([1, pageCount, currentPage - 1, currentPage, currentPage + 1])
+  const sortedPages = [...pages]
+    .filter(page => page >= 1 && page <= pageCount)
+    .sort((left, right) => left - right)
+  const visiblePages: Array<number | 'ellipsis'> = []
+
+  for (const page of sortedPages) {
+    const previousPage = visiblePages[visiblePages.length - 1]
+
+    if (typeof previousPage === 'number' && page - previousPage > 1) {
+      visiblePages.push('ellipsis')
+    }
+
+    visiblePages.push(page)
+  }
+
+  return visiblePages
 }
 
 function ChapterPagination({

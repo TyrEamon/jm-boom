@@ -14,14 +14,14 @@ import {
 } from '@/components/ui/drawer'
 import type { ComicChapter } from '@/lib/api/comic'
 import type { DownloadChapterRequest } from '@/lib/api/download'
-import { formatChapterTitle } from './utils'
+import { formatComicChapterTitle } from '@/lib/comic'
 
 export type DownloadChapterOption = DownloadChapterRequest
 
 export function toDownloadChapterOptions(chapters: ComicChapter[]) {
   return chapters.map((chapter, index) => ({
     chapterId: chapter.id,
-    title: formatChapterTitle(chapter, index),
+    title: formatComicChapterTitle(chapter, index),
     order: index + 1
   }))
 }

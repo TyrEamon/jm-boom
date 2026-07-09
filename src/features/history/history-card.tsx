@@ -4,7 +4,8 @@ import { ComicCover } from '@/components/comic-cover'
 import { OverflowTooltip } from '@/components/overflow-tooltip'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { type ReadingHistoryItem } from '@/stores/reading-history-store'
 
 interface HistoryCardProps {

@@ -11,6 +11,12 @@ import {
   type ComicDetail,
   type ComicDetailResult
 } from '@/lib/api/comic'
+import {
+  SINGLE_CHAPTER_TITLE,
+  resolveComicAlbumId,
+  resolveComicStartReadingTarget,
+  sortComicChapters
+} from '@/lib/comic'
 import { getComicReadManifest } from '@/lib/api/reader'
 import { CACHE } from '@/lib/constants'
 import { queryKeys } from '@/lib/query-keys'
@@ -19,12 +25,6 @@ import { CommentsDrawer } from './comments'
 import { ComicHero } from './hero'
 import { RelatedPanel } from './related'
 import { ComicDetailSkeleton, StatePanel } from './shared'
-import {
-  SINGLE_CHAPTER_TITLE,
-  resolveAlbumId,
-  resolveStartReadingTarget,
-  sortChapters
-} from './utils'
 import { useSettingsStore } from '@/stores/settings-store'
 import {
   ComicDownloadDrawer,
@@ -73,10 +73,10 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
   const queryClient = useQueryClient()
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
-  const albumId = resolveAlbumId(comic)
-  const startReadingTarget = useMemo(() => resolveStartReadingTarget(comic), [comic])
+  const albumId = resolveComicAlbumId(comic)
+  const startReadingTarget = useMemo(() => resolveComicStartReadingTarget(comic), [comic])
   const downloadChapters = useMemo(() => {
-    const chapters = sortChapters(comic.series)
+    const chapters = sortComicChapters(comic.series)
 
     if (chapters.length === 0) {
       return [
