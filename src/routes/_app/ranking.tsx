@@ -104,12 +104,7 @@ function RankingPage() {
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
         <PageBackButton />
-        <FeedHeader
-          title="排行榜"
-          description="按分类和热度浏览作品"
-          isFetching={query.isFetching}
-          onRefresh={() => query.refetch()}
-        />
+        <FeedHeader title="排行榜" description="按分类和热度浏览作品" />
 
         <div className="mb-4 flex items-center justify-end gap-3">
           <Select value={search.order} onValueChange={updateOrder}>

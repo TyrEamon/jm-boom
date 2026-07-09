@@ -95,13 +95,6 @@ function WeeklyPage() {
     refetchOnWindowFocus: false
   })
 
-  function refresh() {
-    filters.refetch()
-    if (canLoadItems) {
-      items.refetch()
-    }
-  }
-
   function updateTypeId(typeId: string) {
     void navigate({
       replace: true,
@@ -128,12 +121,7 @@ function WeeklyPage() {
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
         <PageBackButton />
-        <FeedHeader
-          title="每周推荐"
-          description="为你精选的本周热门作品"
-          isFetching={filters.isFetching || items.isFetching}
-          onRefresh={refresh}
-        />
+        <FeedHeader title="每周推荐" description="为你精选的本周热门作品" />
 
         {filters.isError ? (
           <StatePanel
