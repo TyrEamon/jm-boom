@@ -1,11 +1,11 @@
 import { FolderOpenIcon, LoaderCircleIcon } from 'lucide-react'
 
 import { BackTopButton } from '@/components/back-top-button'
+import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DownloadEmptyState } from './download-empty-state'
 import { DownloadTaskCard } from './download-task-card'
 import { DOWNLOAD_FILTERS, type DownloadFilter, useDownloadTasks } from './use-download-tasks'
 
@@ -65,9 +65,9 @@ export function DownloadsPage() {
             </CardContent>
           </Card>
         ) : taskList.length === 0 ? (
-          <DownloadEmptyState label="暂无下载任务" />
+          <EmptyState emoji="(˘･_･˘)" title="暂无下载任务" />
         ) : filteredTasks.length === 0 ? (
-          <DownloadEmptyState label="当前筛选下暂无任务" />
+          <EmptyState emoji="(˘･_･˘)" title="当前筛选下暂无任务" />
         ) : (
           <div className="space-y-3">
             {filteredTasks.map(task => (

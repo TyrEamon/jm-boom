@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 
 import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
+import { EmptyState } from '@/components/empty-state'
 import { ListPagination } from '@/components/list-pagination'
 import {
   Select,
@@ -98,7 +99,7 @@ function FavoritesPage() {
           ) : favorites.isLoading ? (
             <ComicGridSkeleton />
           ) : favorites.data == null || favorites.data.items.length === 0 ? (
-            <FavoritesEmptyState />
+            <EmptyState emoji="(･o･;)" title="暂无收藏的漫画" />
           ) : (
             <div className="space-y-6">
               <ComicGrid items={favorites.data.items} />
@@ -114,14 +115,5 @@ function FavoritesPage() {
       </div>
       <BackTopButton />
     </main>
-  )
-}
-
-function FavoritesEmptyState() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
-      <p className="text-6xl font-bold text-foreground">(･o･;)</p>
-      <p className="text-sm text-muted-foreground">暂无收藏的漫画</p>
-    </div>
   )
 }
