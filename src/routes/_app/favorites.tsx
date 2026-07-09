@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { BookmarkIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { BookmarkIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { BackTopButton } from '@/components/back-top-button'
 import { ComicGrid, ComicGridSkeleton, FeedHeader, StatePanel } from '@/components/comic-feed'
-import { Button } from '@/components/ui/button'
+import { ListPagination } from '@/components/list-pagination'
 import {
   Select,
   SelectContent,
@@ -102,28 +102,12 @@ function FavoritesPage() {
           ) : (
             <div className="space-y-6">
               <ComicGrid items={favorites.data.items} />
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1 || favorites.isFetching}
-                  onClick={() => setPage(current => Math.max(1, current - 1))}
-                >
-                  <ChevronLeftIcon className="size-4" />
-                  上一页
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!favorites.data.hasMore || favorites.isFetching}
-                  onClick={() => setPage(current => current + 1)}
-                >
-                  下一页
-                  <ChevronRightIcon className="size-4" />
-                </Button>
-              </div>
+              <ListPagination
+                page={page}
+                hasMore={favorites.data.hasMore}
+                disabled={favorites.isFetching}
+                onPageChange={nextPage => setPage(nextPage)}
+              />
             </div>
           )}
         </section>
