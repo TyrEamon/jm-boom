@@ -1,0 +1,123 @@
+name: Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Android ABI target
+        required: true
+        default: aarch64
+        type: choice
+        options:
+          - aarch64
+          - armv7
+          - x86_64
+          - i686
+          - all
+      output:
+        description: Android artifact type
+        required: true
+        default: apk
+        type: choice
+        options:
+          - apk
+          - aab
+          - both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANDROID_API_LEVEL: "35"
+  ANDROID_BUILD_TOOLS_VERSION: "35.0.0"
+  ANDROID_NDK_VERSION: "27.0.12077973"
+
+jobs:
+  build-android:
+    name: Build Android ${{ inputs.target }} ${{ inputs.output }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libssl-dev
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+            "ndk;${ANDROID_NDK_VERSION}"
+          echo "NDK_HOME=${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Initialize Android project
+        run: |
+          if [ ! -f src-tauri/gen/android/gradlew ]; then
+            bun run tauri android init --ci
+          fi
+          chmod +x src-tauri/gen/android/gradlew
+
+      - name: Build Android artifact
+        run: |
+          target_arg=""
+          if [ "${{ inputs.target }}" != "all" ]; then
+            target_arg="--target ${{ inputs.target }}"
+          fi
+
+          output_arg="--apk"
+          if [ "${{ inputs.output }}" = "aab" ]; then
+            output_arg="--aab"
+          elif [ "${{ inputs.output }}" = "both" ]; then
+            output_arg="--apk --aab"
+          fi
+
+          bun run tauri android build --debug --ci ${target_arg} ${output_arg}
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: jm-boom-android-${{ inputs.target }}-${{ inputs.output }}
+          path: |
+            src-tauri/gen/android/**/build/outputs/**/*.apk
+            src-tauri/gen/android/**/build/outputs/**/*.aab
+          if-no-files-found: error
