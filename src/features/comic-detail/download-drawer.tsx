@@ -74,7 +74,7 @@ export function ComicDownloadDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-[460px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[460px] data-[vaul-drawer-direction=right]:sm:max-w-[460px]">
+      <DrawerContent className="h-full w-[calc(100vw-12px)] max-w-none overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[calc(100vw-12px)] sm:w-[460px] sm:data-[vaul-drawer-direction=right]:w-[460px] sm:data-[vaul-drawer-direction=right]:max-w-[460px]">
         <DrawerHeader>
           <DrawerTitle>选择下载章节</DrawerTitle>
           <DrawerDescription className="line-clamp-2">{comicTitle}</DrawerDescription>
@@ -82,7 +82,7 @@ export function ComicDownloadDrawer({
 
         <div className="border-y border-border/70 px-4 py-3">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <label className="flex cursor-pointer items-center gap-3">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={checked => toggleAll(checked === true)}
@@ -103,7 +103,7 @@ export function ComicDownloadDrawer({
               return (
                 <label
                   key={chapter.chapterId}
-                  className="flex cursor-pointer items-center gap-3 rounded-md border border-border/70 bg-card/60 p-3 transition-colors hover:bg-muted/50"
+                  className="flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-border/70 bg-card/60 p-3 transition-colors hover:bg-muted/50"
                 >
                   <Checkbox
                     checked={checked}
@@ -112,7 +112,7 @@ export function ComicDownloadDrawer({
                     }
                   />
                   <div className="min-w-0 flex-1 truncate text-sm font-medium">{chapter.title}</div>
-                  <Badge variant="outline" className="shrink-0">
+                  <Badge variant="outline" className="max-w-24 shrink-0 truncate sm:max-w-none">
                     JM {chapter.chapterId}
                   </Badge>
                 </label>

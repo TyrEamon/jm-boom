@@ -56,7 +56,7 @@ export function ComicCover({
         <CoverPlaceholder />
       )}
       {showIdBadge && id ? (
-        <div className="absolute top-2 left-2 rounded-full border bg-background/45 px-2 py-1 text-[10px] backdrop-blur">
+        <div className="absolute top-1.5 left-1.5 max-w-[calc(100%-0.75rem)] truncate rounded-full border bg-background/55 px-1.5 py-0.5 text-[10px] backdrop-blur sm:top-2 sm:left-2 sm:px-2 sm:py-1">
           JM {id}
         </div>
       ) : null}

@@ -51,10 +51,14 @@ export function ChaptersSection({
   function changePage(nextPage: number) {
     const clampedPage = Math.min(Math.max(nextPage, 1), pageCount)
     setPage(clampedPage)
-    document.getElementById('chapters')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    })
+    const element = document.getElementById('chapters')
+
+    if (element) {
+      window.scrollTo({
+        top: Math.max(window.scrollY + element.getBoundingClientRect().top - 16, 0),
+        behavior: 'smooth'
+      })
+    }
   }
 
   return (
@@ -176,7 +180,7 @@ function ChapterPagination({
 
   return (
     <Pagination className="pt-2">
-      <PaginationContent>
+      <PaginationContent className="flex-wrap justify-center">
         <PaginationItem>
           <PaginationPrevious
             href="#"

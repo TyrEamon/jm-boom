@@ -1,5 +1,5 @@
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ReaderBottomBar, ReaderTopBar } from './reader-bars'
 import { ReaderHotZones } from './reader-hot-zones'
@@ -26,8 +26,9 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
   const readerPageDirection = useSettingsStore(state => state.readerPageDirection)
   const readerDoublePageMode = useSettingsStore(state => state.readerDoublePageMode)
   const readerAutoReadEnabled = useSettingsStore(state => state.readerAutoReadEnabled)
+  const isNarrowReaderViewport = useNarrowReaderViewport()
   const isStripMode = readerReadMode === 'strip'
-  const isDoublePageMode = !isStripMode && readerDoublePageMode
+  const isDoublePageMode = !isStripMode && readerDoublePageMode && !isNarrowReaderViewport
   const pageStep = isDoublePageMode ? 2 : 1
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const autoReadEntryComicIdRef = useRef<string | null>(null)
@@ -199,7 +200,7 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
 
   return (
     <main
-      className="relative flex h-screen overflow-hidden bg-neutral-950 text-neutral-50"
+      className="relative flex h-[100dvh] overflow-hidden bg-neutral-950 text-neutral-50"
       onClick={toggleToolbar}
     >
       <ReaderTopBar
@@ -223,7 +224,7 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
       <section
         className={cn(
           'flex min-w-0 flex-1 items-center justify-center',
-          isStripMode ? 'h-screen' : null
+          isStripMode ? 'h-[100dvh]' : null
         )}
       >
         {isManifestLoading ? (
@@ -292,4 +293,26 @@ function resolveSearchNextChapter(
     id: nextId,
     title: search.nextChapter.trim() || '下一章'
   }
+}
+
+function useNarrowReaderViewport() {
+  const [isNarrow, setIsNarrow] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.matchMedia('(max-width: 767px)').matches
+  })
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsNarrow(mediaQuery.matches)
+
+    update()
+    mediaQuery.addEventListener('change', update)
+
+    return () => mediaQuery.removeEventListener('change', update)
+  }, [])
+
+  return isNarrow
 }

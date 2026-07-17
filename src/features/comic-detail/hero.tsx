@@ -44,13 +44,18 @@ export function ComicHero({
 
   return (
     <section className="grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
-      <ComicCover id={comic.id} title={comic.title} image={comic.image} className="w-44 max-w-full sm:w-full" />
+      <ComicCover
+        id={comic.id}
+        title={comic.title}
+        image={comic.image}
+        className="mx-auto w-44 max-w-full sm:mx-0 sm:w-full"
+      />
 
       <div className="min-w-0 space-y-5 py-1">
         <Badge variant="default">JM {comic.id}</Badge>
 
         <div className="space-y-2">
-          <h1 className="text-3xl leading-tight font-bold tracking-normal sm:text-4xl">
+          <h1 className="text-2xl leading-tight font-bold tracking-normal sm:text-4xl">
             {comic.title}
           </h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -67,8 +72,8 @@ export function ComicHero({
           {comic.description || '暂无简介'}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button asChild className="col-span-2 sm:col-span-1">
             <Link
               to="/reader/$comicId"
               params={{ comicId: startReading.readId }}
@@ -90,6 +95,7 @@ export function ComicHero({
             variant={comic.isFavorite ? 'secondary' : 'outline'}
             onClick={onFavoriteClick}
             disabled={favoriteBusy}
+            className="min-w-0"
           >
             {comic.isFavorite ? (
               <BookmarkCheckIcon className="size-4" />
@@ -98,7 +104,12 @@ export function ComicHero({
             )}
             {comic.isFavorite ? '已收藏' : '收藏'}
           </Button>
-          <Button variant="outline" disabled={downloadBusy} onClick={onDownloadClick}>
+          <Button
+            variant="outline"
+            disabled={downloadBusy}
+            className="min-w-0"
+            onClick={onDownloadClick}
+          >
             <DownloadIcon className="size-4" />
             下载
           </Button>
@@ -148,7 +159,7 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
               <stat.icon className="size-4" />
               {stat.label}
             </div>
-            <div className="text-xl font-semibold">{stat.value}</div>
+            <div className="text-lg font-semibold sm:text-xl">{stat.value}</div>
           </>
         )
 
@@ -157,13 +168,13 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
             {stat.onClick ? (
               <button
                 type="button"
-                className="flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center space-y-1 rounded-sm p-4 transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center space-y-1 rounded-sm p-3 transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:p-4"
                 onClick={stat.onClick}
               >
                 {content}
               </button>
             ) : (
-              <div className="flex min-w-0 flex-1 flex-col items-center justify-center space-y-1 p-4">
+              <div className="flex min-w-0 flex-1 flex-col items-center justify-center space-y-1 p-3 sm:p-4">
                 {content}
               </div>
             )}
@@ -191,10 +202,10 @@ function PillGroup({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-10 text-xs text-muted-foreground">{title}</span>
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <span className="w-10 shrink-0 text-xs text-muted-foreground">{title}</span>
       {items.map(item => (
-        <Badge key={`${title}-${item}`} variant={variant} asChild>
+        <Badge key={`${title}-${item}`} variant={variant} asChild className="max-w-full truncate">
           <Link
             to="/search"
             search={{
@@ -236,7 +247,7 @@ function SearchLinks({
               page: 1,
               sortBy: 1
             }}
-            className="max-w-md truncate underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="max-w-full truncate underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:max-w-md"
           >
             {item}
           </Link>

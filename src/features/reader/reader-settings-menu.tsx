@@ -21,7 +21,7 @@ import {
 } from '@/stores/settings-store'
 
 const READER_SETTING_BUTTON_CLASS =
-  'h-7 rounded-md px-2 text-xs text-neutral-200 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50'
+  'h-9 rounded-md px-2 text-xs text-neutral-200 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50 sm:h-7'
 
 const READER_SETTING_ITEM_CLASS =
   'text-neutral-100 focus:bg-white/10 focus:text-neutral-50 [&_svg]:text-neutral-300'

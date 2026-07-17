@@ -5,8 +5,14 @@ export function homeSectionId(section: HomeFeedSection) {
 }
 
 export function scrollToHomeSection(sectionId: string) {
-  document.getElementById(sectionId)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
+  const element = document.getElementById(sectionId)
+
+  if (!element) {
+    return
+  }
+
+  window.scrollTo({
+    top: Math.max(window.scrollY + element.getBoundingClientRect().top - 16, 0),
+    behavior: 'smooth'
   })
 }

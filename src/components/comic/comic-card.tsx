@@ -96,9 +96,11 @@ export function ComicCard<T extends BaseComic>({
         ) : null}
       </div>
 
-      <CardContent className="space-y-1.5 p-3">
+      <CardContent className="space-y-1.5 p-2.5 sm:p-3">
         <OverflowTooltip asChild content={comic.title}>
-          <div className="truncate text-sm font-semibold">{comic.title}</div>
+          <div className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold sm:min-h-0 sm:truncate">
+            {comic.title}
+          </div>
         </OverflowTooltip>
         {metadata}
       </CardContent>

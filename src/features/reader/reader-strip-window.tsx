@@ -141,11 +141,11 @@ export function ReaderStripWindow({
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen scrollbar-none overflow-y-auto overscroll-contain scroll-smooth bg-neutral-950"
+      className="h-[100dvh] w-[100dvw] scrollbar-none overflow-y-auto overscroll-contain scroll-smooth bg-neutral-950"
       onScroll={scheduleResolveCurrentIndex}
       onWheel={handleWheel}
     >
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center pb-32">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-col items-center pb-[calc(8rem+env(safe-area-inset-bottom))]">
         {Array.from({ length: pageCount }, (_, index) => (
           <ReaderStripImage
             key={index}

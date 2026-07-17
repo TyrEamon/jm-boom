@@ -59,13 +59,13 @@ export function CommentsDrawer({ open, onOpenChange, state }: CommentsDrawerProp
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-110 overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-110 data-[vaul-drawer-direction=right]:sm:max-w-110">
+      <DrawerContent className="h-full w-[calc(100vw-12px)] max-w-none overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[calc(100vw-12px)] sm:w-110 sm:data-[vaul-drawer-direction=right]:w-110 sm:data-[vaul-drawer-direction=right]:max-w-110">
         <DrawerHeader>
           <DrawerTitle>评论</DrawerTitle>
           <DrawerDescription>共 {formatNumber(state.total)} 条评论</DrawerDescription>
         </DrawerHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6" onScroll={handleScroll}>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 sm:px-6" onScroll={handleScroll}>
           {state.isLoading ? (
             <CommentSkeletonList />
           ) : state.isError ? (

@@ -10,7 +10,7 @@ import { ReaderSettingsMenu } from './reader-settings-menu'
 import type { ReaderChapterItem } from './types'
 
 const CHAPTER_BUTTON_CLASS =
-  'h-7 rounded-md px-2 text-xs text-neutral-200 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50 disabled:text-neutral-500'
+  'h-9 rounded-md px-2 text-xs text-neutral-200 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50 disabled:text-neutral-500 sm:h-7'
 
 export function ReaderChapterControls({
   title,
@@ -43,8 +43,8 @@ export function ReaderChapterControls({
 
   return (
     <>
-      <div className="flex w-full items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-1">
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="grid min-w-0 grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-1">
           <ChapterNavButton
             title={title}
             albumId={albumId}
@@ -80,7 +80,9 @@ export function ReaderChapterControls({
           <ReaderSettingsMenu />
         </div>
 
-        <div className="shrink-0 text-xs text-neutral-300 tabular-nums">{pageLabel}</div>
+        <div className="text-center text-xs text-neutral-300 tabular-nums sm:shrink-0 sm:text-right">
+          {pageLabel}
+        </div>
       </div>
 
       <ReaderChapterDrawer

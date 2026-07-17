@@ -38,12 +38,22 @@ export function ReaderChapterDrawer({
     }
 
     const timeoutId = window.setTimeout(() => {
-      listRef.current
-        ?.querySelector<HTMLElement>('[data-current-chapter="true"]')
-        ?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        })
+      const list = listRef.current
+      const target = list?.querySelector<HTMLElement>('[data-current-chapter="true"]')
+
+      if (!list || !target) {
+        return
+      }
+
+      const listRect = list.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const targetCenterTop =
+        list.scrollTop + targetRect.top - listRect.top + target.clientHeight / 2
+
+      list.scrollTo({
+        top: Math.max(targetCenterTop - list.clientHeight / 2, 0),
+        behavior: 'smooth'
+      })
     }, 180)
 
     return () => window.clearTimeout(timeoutId)
@@ -51,7 +61,7 @@ export function ReaderChapterDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-[420px] max-w-[calc(100vw-24px)] overflow-hidden rounded-l-xl border-l border-white/10 bg-neutral-950/90 p-0 text-neutral-50 shadow-2xl backdrop-blur-xl before:hidden data-[vaul-drawer-direction=right]:w-[420px] data-[vaul-drawer-direction=right]:sm:max-w-[420px]">
+      <DrawerContent className="h-full w-[calc(100vw-12px)] max-w-none overflow-hidden rounded-l-xl border-l border-white/10 bg-neutral-950/90 p-0 text-neutral-50 shadow-2xl backdrop-blur-xl before:hidden data-[vaul-drawer-direction=right]:w-[calc(100vw-12px)] sm:w-[420px] sm:data-[vaul-drawer-direction=right]:w-[420px] sm:data-[vaul-drawer-direction=right]:max-w-[420px]">
         <DrawerHeader className="relative border-b border-white/10 pr-12">
           <DrawerTitle className="text-neutral-50">章节目录</DrawerTitle>
           <DrawerDescription className="line-clamp-1 text-neutral-400">
@@ -69,8 +79,8 @@ export function ReaderChapterDrawer({
           </Button>
         </DrawerHeader>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          <div ref={listRef} className="space-y-2">
+        <nav ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="space-y-2">
             {displayChapters.map(chapter => {
               const isCurrent = chapter.id === currentReadId
 

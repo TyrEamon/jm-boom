@@ -28,7 +28,7 @@ export function ReaderTopBar({
   return (
     <header
       className={cn(
-        'absolute inset-x-0 top-0 z-30 grid h-16 grid-cols-[120px_minmax(0,1fr)_120px] items-center bg-neutral-950/85 px-4 backdrop-blur transition-all duration-200',
+        'absolute inset-x-0 top-0 z-30 grid min-h-[calc(3.5rem+env(safe-area-inset-top))] grid-cols-[76px_minmax(0,1fr)_44px] items-center bg-neutral-950/85 px-3 pt-[env(safe-area-inset-top)] backdrop-blur transition-all duration-200 sm:min-h-[calc(4rem+env(safe-area-inset-top))] sm:grid-cols-[120px_minmax(0,1fr)_120px] sm:px-4',
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0'
       )}
       onClick={event => event.stopPropagation()}
@@ -36,7 +36,7 @@ export function ReaderTopBar({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-self-start text-neutral-50 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50"
+        className="min-h-10 justify-self-start px-2 text-neutral-50 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50 sm:px-3"
         onClick={onBack}
       >
         <ArrowLeftIcon className="size-4" />
@@ -93,7 +93,7 @@ export function ReaderBottomBar({
   return (
     <footer
       className={cn(
-        'absolute bottom-8 left-1/2 z-30 flex w-[480px] max-w-[calc(100vw-48px)] -translate-x-1/2 flex-col gap-2 rounded-xl border border-white/10 bg-neutral-950/85 p-3 text-neutral-50 shadow-lg backdrop-blur transition-all duration-200',
+        'absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-1/2 z-30 flex w-[calc(100vw-1rem)] -translate-x-1/2 flex-col gap-2 rounded-xl border border-white/10 bg-neutral-950/85 p-3 text-neutral-50 shadow-lg backdrop-blur transition-all duration-200 sm:w-[480px] sm:max-w-[calc(100vw-48px)]',
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       )}
       onClick={event => event.stopPropagation()}
