@@ -122,15 +122,15 @@ function SearchPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-28 md:p-[32px_32px_16px_96px]">
         <PageBackButton />
         <PageHeader
           title="搜索"
           description="按关键词查找漫画作品"
         />
 
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <form className="w-full max-w-xl" onSubmit={submitSearch}>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <form className="w-full sm:max-w-xl" onSubmit={submitSearch}>
             <InputGroup className="h-10">
               <InputGroupAddon>
                 <SearchIcon className="size-4" />

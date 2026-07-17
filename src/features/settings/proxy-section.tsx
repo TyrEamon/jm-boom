@@ -30,7 +30,7 @@ export function ProxySection({
   return (
     <SettingsSection icon={<GlobeCheckIcon className="size-4" />} title="代理">
       <SettingRow title="本地代理" description="为接口和阅读图片请求启用本机 HTTP 或 SOCKS5 代理">
-        <div className="flex items-center gap-2">
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:items-center">
           <Select value={proxyMode} onValueChange={onProxyModeChange}>
             <SelectTrigger>
               <SelectValue />
@@ -49,14 +49,14 @@ export function ProxySection({
             value={proxyHost}
             disabled={proxyMode === 'off'}
             onChange={event => onProxyHostChange(event.target.value)}
-            className="w-36"
+            className="sm:w-36"
             placeholder="127.0.0.1"
           />
           <Input
             value={String(proxyPort)}
             disabled={proxyMode === 'off'}
             onChange={event => onProxyPortChange(Number(event.target.value))}
-            className="w-24"
+            className="sm:w-24"
             inputMode="numeric"
             min={1}
             max={65535}

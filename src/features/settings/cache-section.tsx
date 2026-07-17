@@ -58,12 +58,13 @@ export function CacheSection({
         </Select>
       </SettingRow>
       <SettingRow title="缓存路径" description="缓存在应用目录中的路径">
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-80">
           <Input disabled value={cacheDirValue(stats)} title={stats.data?.cacheDir ?? ''} />
           <Button
             type="button"
             variant="outline"
             size="icon"
+            className="shrink-0"
             disabled={isOpeningCacheDir}
             onClick={onOpenCacheDir}
           >

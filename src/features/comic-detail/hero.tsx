@@ -43,14 +43,16 @@ export function ComicHero({
   const startReading = resolveComicStartReadingTarget(comic)
 
   return (
-    <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-8">
-      <ComicCover id={comic.id} title={comic.title} image={comic.image} className="w-full" />
+    <section className="grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+      <ComicCover id={comic.id} title={comic.title} image={comic.image} className="w-44 max-w-full sm:w-full" />
 
       <div className="min-w-0 space-y-5 py-1">
         <Badge variant="default">JM {comic.id}</Badge>
 
         <div className="space-y-2">
-          <h1 className="text-4xl leading-tight font-bold tracking-normal">{comic.title}</h1>
+          <h1 className="text-3xl leading-tight font-bold tracking-normal sm:text-4xl">
+            {comic.title}
+          </h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <UserRoundIcon className="size-4" />
             <SearchLinks items={comic.author} fallback="N/A" className="min-w-0" />
@@ -138,7 +140,7 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
   ]
 
   return (
-    <div className="flex items-stretch rounded-md bg-card/60 text-center text-sm">
+    <div className="grid grid-cols-2 rounded-md bg-card/60 text-center text-sm sm:flex sm:items-stretch">
       {stats.map((stat, index) => {
         const content = (
           <>
@@ -165,7 +167,9 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
                 {content}
               </div>
             )}
-            {index < stats.length - 1 ? <Separator orientation="vertical" /> : null}
+            {index < stats.length - 1 ? (
+              <Separator orientation="vertical" className="hidden sm:block" />
+            ) : null}
           </div>
         )
       })}

@@ -38,9 +38,9 @@ export function ApiEndpointSection({
   return (
     <SettingsSection icon={<NetworkIcon className="size-4" />} title="网络">
       <SettingRow title="API 接口" description="测速后自动优选延迟最低的可用接口">
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Select value={endpoint} onValueChange={onEndpointChange}>
-            <SelectTrigger>
+            <SelectTrigger className="min-w-0 flex-1 sm:w-72">
               <SelectValue>
                 <EndpointDisplay
                   endpoint={endpoint}
@@ -75,6 +75,7 @@ export function ApiEndpointSection({
             type="button"
             variant="outline"
             size="icon"
+            className="shrink-0"
             disabled={isDiscovering || isRefreshingEndpoints}
             onClick={onRefresh}
           >

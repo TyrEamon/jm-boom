@@ -56,7 +56,7 @@ export function DownloadTaskCard({
   return (
     <Card>
       <CardContent className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
               <StatusIcon status={task.status} />
@@ -68,7 +68,7 @@ export function DownloadTaskCard({
             </div>
             <div className="mt-1 text-xs text-muted-foreground">{formatChapterSummary(task)}</div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" disabled={isOpening} onClick={onOpen}>
               <FolderOpenIcon className="size-4" />
               目录

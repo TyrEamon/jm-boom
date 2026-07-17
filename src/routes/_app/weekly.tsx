@@ -122,7 +122,7 @@ function WeeklyPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-28 md:p-[32px_32px_16px_96px]">
         <PageBackButton />
         <PageHeader title="每周推荐" description="为你精选的本周热门作品" />
 
@@ -138,10 +138,10 @@ function WeeklyPage() {
           />
         ) : (
           <>
-            <div className="mb-4 flex justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:justify-between">
               {types.length > 0 ? (
-                <Tabs value={selectedTypeId} onValueChange={updateTypeId}>
-                  <TabsList>
+                <Tabs value={selectedTypeId} onValueChange={updateTypeId} className="min-w-0">
+                  <TabsList className="max-w-full overflow-x-auto">
                     {types.map(type => (
                       <TabsTrigger key={type.id} value={type.id} className="min-w-16">
                         {type.title}

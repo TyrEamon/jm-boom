@@ -66,7 +66,7 @@ function MePage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col p-[32px_32px_16px_96px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col p-4 pb-28 md:p-[32px_32px_16px_96px]">
         <PageHeader title="个人中心" description="展示用户信息">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" disabled>
@@ -104,7 +104,7 @@ function MePage() {
             <p className="text-sm text-muted-foreground">UID {user.id}</p>
           </div>
 
-          <div className="mt-12 flex gap-16">
+          <div className="mt-12 grid w-full max-w-xl grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-10">
             {[
               {
                 label: '经验',
@@ -123,7 +123,7 @@ function MePage() {
                 value: `${user.currentCollectCount}/${user.maxCollectCount}`
               }
             ].map(item => (
-              <div key={item.label} className="flex flex-col items-center gap-2">
+              <div key={item.label} className="min-w-0 flex flex-col items-center gap-2 text-center">
                 <div className="text-sm text-muted-foreground">{item.label}</div>
                 <div className="truncate text-xl font-bold">{item.value}</div>
               </div>

@@ -26,7 +26,7 @@ export function DownloadsPage() {
   } = useDownloadTasks()
 
   return (
-    <main className="relative min-h-screen bg-background p-[32px_32px_16px_96px] text-foreground">
+    <main className="relative min-h-screen bg-background p-4 pb-28 text-foreground md:p-[32px_32px_16px_96px]">
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader title="下载" description="查看下载进度、剩余时间和已完成文件目录">
           <Button
@@ -40,8 +40,8 @@ export function DownloadsPage() {
           </Button>
         </PageHeader>
 
-        <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)}>
-          <TabsList>
+        <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)} className="min-w-0">
+          <TabsList className="max-w-full overflow-x-auto">
             {DOWNLOAD_FILTERS.map(item => (
               <TabsTrigger key={item.value} value={item.value} className="min-w-20">
                 {item.label}

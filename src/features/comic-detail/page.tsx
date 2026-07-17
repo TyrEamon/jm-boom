@@ -47,7 +47,7 @@ export function ComicDetailPage({ comicId }: { comicId: string }) {
   })
 
   return (
-    <main className="min-h-screen bg-background p-[32px_32px_16px_96px] text-foreground">
+    <main className="min-h-screen bg-background p-4 pb-28 text-foreground md:p-[32px_32px_16px_96px]">
       <div className="mx-auto max-w-7xl space-y-8">
         <PageBackButton />
 
@@ -216,7 +216,7 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
         favoriteBusy={favoriteMutation.isPending}
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-8">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
           <ChaptersSection
             albumId={albumId}
@@ -226,7 +226,7 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
           />
         </div>
 
-        <aside className="sticky top-8 h-fit">
+        <aside className="h-fit lg:sticky lg:top-8">
           <RelatedPanel items={comic.relatedList} />
         </aside>
       </div>
